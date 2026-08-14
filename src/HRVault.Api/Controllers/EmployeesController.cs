@@ -17,6 +17,7 @@ using HRVault.Application.Employees.Commands.UpdateEmployeeContact;
 using HRVault.Application.Employees.Commands.DeleteEmployeeContact;
 using HRVault.Application.Employees.Commands.UpsertEmployeeEmergencyContact;
 using HRVault.Application.Employees.Commands.DeleteEmployeeEmergencyContact;
+using HRVault.Application.Employees.Commands.UploadEmployeeDocument;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HRVault.Api.Controllers;
@@ -255,5 +256,34 @@ public class EmployeesController : BaseApiController
 				employeeId));
 
 		return NoContent();
+	}
+	
+	[HttpPost("{employeeId:guid}/documents")]
+	[RequestSizeLimit(20_000_000)]
+	public async Task<ActionResult<Guid>> UploadDocument(
+		Guid employeeId,
+		[FromForm] string category,
+		[FromForm] IFormFile file)
+	{
+		if (file is null || file.Length == 0)
+		{
+			return BadRequest(
+				"A valid file is required.");
+		}
+
+		await using var stream = file.OpenReadStream();
+
+		var command =
+			new UploadEmployeeDocumentCommand(
+				EmployeeId: employeeId,
+				Category: category,
+				FileName: file.FileName,
+				ContentType: file.ContentType,
+				Size: file.Length,
+				Content: stream);
+
+		var id = await Mediator.Send(command);
+
+		return Ok(id);
 	}
 }

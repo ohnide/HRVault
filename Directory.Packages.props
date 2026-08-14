@@ -10,6 +10,7 @@
     <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.8" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.8" />
     <PackageVersion Include="Microsoft.Extensions.Identity.Stores" Version="9.0.8" />
+    <PackageVersion Include="Minio" Version="7.0.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="9.0.3" />
     <!-- Entity Framework -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.8" />

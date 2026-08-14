@@ -51,6 +51,7 @@ dist/
 appsettings.Development.json
 appsettings.Local.json
 secrets.json
+minio.license
 
 # Local databases
 *.db

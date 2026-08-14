@@ -8,6 +8,7 @@ using HRVault.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using HRVault.Infrastructure.Storage;
 
 namespace HRVault.Infrastructure;
 
@@ -69,6 +70,17 @@ public static class DependencyInjection
 		services.AddScoped<
 			IEmployeeEmergencyContactRepository,
 			EmployeeEmergencyContactRepository>();
+			
+		services.AddScoped<
+			IDocumentRepository,
+			DocumentRepository>();
+			
+		services.Configure<MinioOptions>(
+			configuration.GetSection(
+				MinioOptions.SectionName));
+
+		services.AddSingleton<IFileStorageService,
+			MinioFileStorageService>();
 			
 		services.AddSingleton<
 			IRefreshTokenService,

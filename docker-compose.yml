@@ -52,26 +52,34 @@ services:
       - hrvault-network
 
   minio:
-    image: minio/minio:latest
-    container_name: hrvault-minio
+   image: quay.io/minio/aistor/minio:latest
+   container_name: hrvault-minio
 
-    restart: unless-stopped
+   restart: unless-stopped
 
-    command: server /data --console-address ":9001"
+   command:
+     - minio
+     - server
+     - /data
+     - --console-address
+     - ":9001"
+     - --license
+     - /minio.license
 
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+   environment:
+     MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+     MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
 
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+   ports:
+     - "9000:9000"
+     - "9001:9001"
 
-    volumes:
-      - minio_data:/data
+   volumes:
+     - minio_data:/data
+     - ./minio.license:/minio.license:ro
 
-    networks:
-      - hrvault-network
+   networks:
+     - hrvault-network
 
   redis:
     image: redis:7-alpine
