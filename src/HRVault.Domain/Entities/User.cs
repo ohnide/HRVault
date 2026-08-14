@@ -27,6 +27,9 @@ public class User : SoftDeleteEntity
     public DateTime? LastLoginAt { get; set; }
 
     public DateTime? PasswordChangedAt { get; set; }
+	
+	public ICollection<RefreshToken> RefreshTokens { get; set; }
+		= new List<RefreshToken>();
 
     public ICollection<UserRole> UserRoles { get; set; }
         = new List<UserRole>();

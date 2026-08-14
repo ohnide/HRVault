@@ -45,6 +45,14 @@ public static class DependencyInjection
         services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
 
         services.AddHttpContextAccessor();
+		
+		services.AddScoped<
+			IRefreshTokenRepository,
+			RefreshTokenRepository>();
+			
+		services.AddSingleton<
+			IRefreshTokenService,
+			RefreshTokenService>();
 
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IPermissionService, PermissionService>();

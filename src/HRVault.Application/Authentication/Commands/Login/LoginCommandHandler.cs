@@ -1,6 +1,7 @@
 using HRVault.Application.Authentication.DTOs;
 using HRVault.Application.Authentication.Interfaces;
 using HRVault.Application.Common.Interfaces;
+using HRVault.Domain.Entities;
 using MediatR;
 
 namespace HRVault.Application.Authentication.Commands.Login;
@@ -11,15 +12,24 @@ public class LoginCommandHandler
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
+    private readonly IRefreshTokenService _refreshTokenService;
+    private readonly IUnitOfWork _unitOfWork;
 
     public LoginCommandHandler(
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
-        IJwtTokenGenerator jwtTokenGenerator)
+        IJwtTokenGenerator jwtTokenGenerator,
+        IRefreshTokenRepository refreshTokenRepository,
+        IRefreshTokenService refreshTokenService,
+        IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
         _jwtTokenGenerator = jwtTokenGenerator;
+        _refreshTokenRepository = refreshTokenRepository;
+        _refreshTokenService = refreshTokenService;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<LoginResponse> Handle(
@@ -62,13 +72,34 @@ public class LoginCommandHandler
             Roles = new List<string>()
         };
 
-        var token =
+        var accessToken =
             _jwtTokenGenerator.GenerateToken(jwtUser);
+
+        var refreshToken =
+            _refreshTokenService.GenerateToken();
+
+        var refreshTokenHash =
+            _refreshTokenService.HashToken(refreshToken);
+
+        var refreshTokenEntity =
+			new HRVault.Domain.Entities.RefreshToken
+        {
+            UserId = user.Id,
+            TokenHash = refreshTokenHash,
+            ExpiresAt = DateTime.UtcNow.AddDays(7)
+        };
+
+        await _refreshTokenRepository.AddAsync(
+            refreshTokenEntity,
+            cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(
+            cancellationToken);
 
         return new LoginResponse
         {
-            AccessToken = token,
-            RefreshToken = string.Empty,
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
             ExpiresAt = DateTime.UtcNow.AddMinutes(60)
         };
     }

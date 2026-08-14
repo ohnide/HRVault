@@ -1,6 +1,5 @@
 using HRVault.Application.Common.Exceptions;
 using HRVault.Application.Common.Interfaces;
-using HRVault.Application.Common.Exceptions;
 using MediatR;
 
 namespace HRVault.Application.Companies.Commands.DeleteCompany;
