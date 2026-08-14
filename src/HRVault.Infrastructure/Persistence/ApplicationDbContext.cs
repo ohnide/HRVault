@@ -3,6 +3,7 @@ using HRVault.Domain.Entities;
 using HRVault.SharedKernel.Common;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using System.Text.Json;
 
 namespace HRVault.Infrastructure.Persistence;
 
@@ -78,10 +79,144 @@ public class ApplicationDbContext : DbContext
     }
 
     private void PrepareEntitiesForSave()
+	{
+		CreateAuditLogs();
+		UpdateSoftDeleteEntities();
+		UpdateAuditableEntities();
+	}
+
+	private void CreateAuditLogs()
+{
+    var entries = ChangeTracker
+        .Entries()
+        .Where(x =>
+            x.Entity is not AuditLog &&
+            x.Entity is not RefreshToken &&
+            x.State is EntityState.Added
+                or EntityState.Modified
+                or EntityState.Deleted)
+        .ToList();
+
+    if (entries.Count == 0)
+        return;
+
+    var now = DateTime.UtcNow;
+
+    foreach (var entry in entries)
     {
-        UpdateSoftDeleteEntities();
-        UpdateAuditableEntities();
+        var sensitiveChangeDetected = false;
+
+        var oldValues =
+            new Dictionary<string, object?>();
+
+        var newValues =
+            new Dictionary<string, object?>();
+
+        foreach (var property in entry.Properties)
+        {
+            // Nunca guardar valores sensíveis no AuditLog.
+            if (IsSensitiveProperty(property.Metadata.Name))
+            {
+                if (entry.State == EntityState.Modified &&
+                    property.IsModified &&
+                    !Equals(
+                        property.OriginalValue,
+                        property.CurrentValue))
+                {
+                    sensitiveChangeDetected = true;
+                }
+
+                continue;
+            }
+
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    newValues[property.Metadata.Name] =
+                        property.CurrentValue;
+                    break;
+
+                case EntityState.Deleted:
+                    oldValues[property.Metadata.Name] =
+                        property.OriginalValue;
+                    break;
+
+                case EntityState.Modified:
+                    if (!property.IsModified)
+                        continue;
+
+                    if (Equals(
+                            property.OriginalValue,
+                            property.CurrentValue))
+                    {
+                        continue;
+                    }
+
+                    oldValues[property.Metadata.Name] =
+                        property.OriginalValue;
+
+                    newValues[property.Metadata.Name] =
+                        property.CurrentValue;
+
+                    break;
+            }
+        }
+
+        if (entry.State == EntityState.Modified &&
+            oldValues.Count == 0 &&
+            newValues.Count == 0 &&
+            !sensitiveChangeDetected)
+        {
+            continue;
+        }
+
+        if (sensitiveChangeDetected)
+        {
+            newValues["SensitiveDataChanged"] = true;
+        }
+
+        var entityId = GetEntityId(entry);
+
+        var companyId = GetCompanyId(entry);
+
+        var auditLog = new AuditLog
+        {
+            CompanyId =
+                companyId ?? _currentUser.CompanyId,
+
+            UserId = _currentUser.UserId,
+
+            UserName = _currentUser.Name,
+
+            Action = entry.State switch
+            {
+                EntityState.Added => "Create",
+                EntityState.Modified => "Update",
+                EntityState.Deleted => "Delete",
+                _ => "Unknown"
+            },
+
+            EntityName =
+                entry.Metadata.ClrType.Name,
+
+            EntityId = entityId,
+
+            OldValues = oldValues.Count > 0
+                ? JsonSerializer.Serialize(oldValues)
+                : null,
+
+            NewValues = newValues.Count > 0
+                ? JsonSerializer.Serialize(newValues)
+                : null,
+
+            CreatedAt = now,
+			
+			IpAddress = _currentUser.IpAddress
+        };
+
+        AuditLogs.Add(auditLog);
     }
+}
 
     private void UpdateAuditableEntities()
     {
@@ -166,4 +301,98 @@ public class ApplicationDbContext : DbContext
                 .HasQueryFilter(lambda);
         }
     }
+	
+	private static Guid? GetEntityId(
+		Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry)
+	{
+		var idProperty =
+			entry.Properties.FirstOrDefault(
+				x => x.Metadata.Name == "Id");
+
+		if (idProperty?.CurrentValue is Guid id)
+			return id;
+
+		if (idProperty?.OriginalValue is Guid originalId)
+			return originalId;
+
+		return null;
+	}
+
+	private Guid? GetCompanyId(
+		Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry)
+	{
+		// Entidades que têm CompanyId diretamente.
+		var companyProperty =
+			entry.Properties.FirstOrDefault(
+				x => x.Metadata.Name == "CompanyId");
+
+		if (companyProperty?.CurrentValue is Guid companyId &&
+			companyId != Guid.Empty)
+		{
+			return companyId;
+		}
+
+		if (companyProperty?.OriginalValue is Guid originalCompanyId &&
+			originalCompanyId != Guid.Empty)
+		{
+			return originalCompanyId;
+		}
+
+		// A própria Company pertence a si mesma para efeitos
+		// de auditoria.
+		if (entry.Entity is Company company)
+		{
+			return company.Id;
+		}
+
+		// UserRole não tem CompanyId.
+		// Tentamos descobrir através do User ou Role
+		// que estejam atualmente no ChangeTracker.
+		if (entry.Entity is UserRole userRole)
+		{
+			var trackedUser = ChangeTracker
+				.Entries<User>()
+				.FirstOrDefault(x =>
+					x.Entity.Id == userRole.UserId);
+
+			if (trackedUser is not null)
+				return trackedUser.Entity.CompanyId;
+
+			var trackedRole = ChangeTracker
+				.Entries<Role>()
+				.FirstOrDefault(x =>
+					x.Entity.Id == userRole.RoleId);
+
+			if (trackedRole is not null)
+				return trackedRole.Entity.CompanyId;
+		}
+
+		// RolePermission também não tem CompanyId.
+		if (entry.Entity is RolePermission rolePermission)
+		{
+			var trackedRole = ChangeTracker
+				.Entries<Role>()
+				.FirstOrDefault(x =>
+					x.Entity.Id == rolePermission.RoleId);
+
+			if (trackedRole is not null)
+				return trackedRole.Entity.CompanyId;
+		}
+
+		return _currentUser.CompanyId;
+	}
+
+	private static bool IsSensitiveProperty(
+		string propertyName)
+	{
+		return propertyName.Contains(
+				   "Password",
+				   StringComparison.OrdinalIgnoreCase) ||
+			   propertyName.Contains(
+				   "Token",
+				   StringComparison.OrdinalIgnoreCase) ||
+			   propertyName.Contains(
+				   "Secret",
+				   StringComparison.OrdinalIgnoreCase);
+	}
 }

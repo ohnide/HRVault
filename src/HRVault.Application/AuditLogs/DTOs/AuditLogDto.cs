@@ -1,9 +1,9 @@
-using HRVault.SharedKernel.Common;
+namespace HRVault.Application.AuditLogs.DTOs;
 
-namespace HRVault.Domain.Entities;
-
-public class AuditLog : BaseEntity
+public class AuditLogDto
 {
+    public Guid Id { get; set; }
+
     public Guid? CompanyId { get; set; }
 
     public Guid? UserId { get; set; }

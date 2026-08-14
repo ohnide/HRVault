@@ -15,4 +15,6 @@ public interface ICurrentUserService
     bool IsAdministrator { get; }
 
     bool IsPlatformAdministrator { get; }
+
+    string? IpAddress { get; }
 }

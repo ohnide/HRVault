@@ -19,7 +19,6 @@ public class RoleRepository
         CancellationToken cancellationToken = default)
     {
         return await Context.Roles
-            .AsNoTracking()
             .FirstOrDefaultAsync(
                 x => x.Id == id &&
                      x.CompanyId == companyId,

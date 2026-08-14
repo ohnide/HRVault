@@ -47,6 +47,10 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
 		
 		services.AddScoped<
+			IAuditLogRepository,
+			AuditLogRepository>();
+		
+		services.AddScoped<
 			IRefreshTokenRepository,
 			RefreshTokenRepository>();
 			

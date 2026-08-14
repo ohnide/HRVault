@@ -32,7 +32,6 @@ public class UserRepository
         CancellationToken cancellationToken = default)
     {
         return await Context.Users
-            .AsNoTracking()
             .FirstOrDefaultAsync(
                 x => x.Id == id &&
                      x.CompanyId == companyId,

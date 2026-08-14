@@ -21,7 +21,6 @@ public abstract class BaseRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         return await DbSet
-            .AsNoTracking()
             .FirstOrDefaultAsync(
                 x => x.Id == id,
                 cancellationToken);

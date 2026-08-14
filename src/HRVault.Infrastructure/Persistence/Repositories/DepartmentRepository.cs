@@ -62,7 +62,6 @@ public class DepartmentRepository
         CancellationToken cancellationToken = default)
     {
         return await Context.Departments
-            .AsNoTracking()
             .FirstOrDefaultAsync(
                 x => x.Id == id &&
                      x.CompanyId == companyId,

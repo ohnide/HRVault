@@ -56,4 +56,11 @@ public class CurrentUserService : ICurrentUserService
                 "isPlatformAdministrator")?.Value,
             out var value)
             && value;
+	
+	public string? IpAddress =>
+		_httpContextAccessor
+			.HttpContext?
+			.Connection
+			.RemoteIpAddress?
+			.ToString();
 }

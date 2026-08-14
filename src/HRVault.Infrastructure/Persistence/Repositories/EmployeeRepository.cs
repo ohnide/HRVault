@@ -27,17 +27,16 @@ public class EmployeeRepository
     }
 
     public async Task<Employee?> GetByIdAndCompanyAsync(
-        Guid id,
-        Guid companyId,
-        CancellationToken cancellationToken = default)
-    {
-        return await Context.Employees
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                x => x.Id == id &&
-                     x.CompanyId == companyId,
-                cancellationToken);
-    }
+		Guid id,
+		Guid companyId,
+		CancellationToken cancellationToken = default)
+	{
+		return await Context.Employees
+			.FirstOrDefaultAsync(
+				x => x.Id == id &&
+					 x.CompanyId == companyId,
+				cancellationToken);
+	}
 
     public async Task<bool> EmployeeNumberExistsAsync(
         string employeeNumber,

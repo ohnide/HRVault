@@ -29,7 +29,6 @@ public class PositionRepository
         CancellationToken cancellationToken = default)
     {
         return await Context.Positions
-            .AsNoTracking()
             .FirstOrDefaultAsync(
                 x => x.Id == id &&
                      x.CompanyId == companyId,
