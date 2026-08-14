@@ -59,6 +59,25 @@ public class EmployeeRepository
         return await query.AnyAsync(cancellationToken);
     }
 
+	public async Task<Employee?> GetDetailsByIdAndCompanyAsync(
+		Guid id,
+		Guid companyId,
+		CancellationToken cancellationToken = default)
+	{
+		return await Context.Employees
+			.AsNoTracking()
+			.Include(x => x.Department)
+			.Include(x => x.Position)
+			.Include(x => x.Profile)
+			.Include(x => x.Addresses)
+			.Include(x => x.Contacts)
+			.Include(x => x.EmergencyContact)
+			.FirstOrDefaultAsync(
+				x => x.Id == id &&
+					 x.CompanyId == companyId,
+				cancellationToken);
+	}
+
     public async Task<PagedResult<EmployeeListDto>> SearchAsync(
         EmployeeFilterDto filter,
         Guid companyId,

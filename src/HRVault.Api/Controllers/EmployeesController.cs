@@ -7,6 +7,16 @@ using HRVault.Application.Employees.DTOs;
 using HRVault.Application.Employees.Queries.GetEmployeeById;
 using HRVault.Application.Employees.Queries.GetEmployees;
 using HRVault.Application.Employees.Queries.SearchEmployees;
+using HRVault.Application.Employees.Queries.GetEmployeeDetails;
+using HRVault.Application.Employees.Commands.UpsertEmployeeProfile;
+using HRVault.Application.Employees.Commands.CreateEmployeeAddress;
+using HRVault.Application.Employees.Commands.UpdateEmployeeAddress;
+using HRVault.Application.Employees.Commands.DeleteEmployeeAddress;
+using HRVault.Application.Employees.Commands.CreateEmployeeContact;
+using HRVault.Application.Employees.Commands.UpdateEmployeeContact;
+using HRVault.Application.Employees.Commands.DeleteEmployeeContact;
+using HRVault.Application.Employees.Commands.UpsertEmployeeEmergencyContact;
+using HRVault.Application.Employees.Commands.DeleteEmployeeEmergencyContact;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HRVault.Api.Controllers;
@@ -86,4 +96,164 @@ public class EmployeesController : BaseApiController
 
         return NoContent();
     }
+	
+	[HttpGet("{id:guid}/details")]
+	public async Task<ActionResult<EmployeeDetailsDto>> GetDetails(
+		Guid id)
+	{
+		var result = await Mediator.Send(
+			new GetEmployeeDetailsQuery(id));
+
+		if (result is null)
+			return NotFound();
+
+		return Ok(result);
+	}
+	
+	[HttpPut("{id:guid}/profile")]
+	public async Task<IActionResult> UpsertProfile(
+		Guid id,
+		UpsertEmployeeProfileCommand command)
+	{
+		if (id != command.EmployeeId)
+		{
+			return BadRequest(
+				"The route id must match the employee id.");
+		}
+
+		await Mediator.Send(command);
+
+		return NoContent();
+	}
+	
+	[HttpPost("{employeeId:guid}/addresses")]
+	public async Task<ActionResult<Guid>> CreateAddress(
+		Guid employeeId,
+		CreateEmployeeAddressCommand command)
+	{
+		if (employeeId != command.EmployeeId)
+		{
+			return BadRequest(
+				"The route employee id must match the command employee id.");
+		}
+
+		var id = await Mediator.Send(command);
+
+		return Ok(id);
+	}
+	
+	[HttpPut("{employeeId:guid}/addresses/{addressId:guid}")]
+	public async Task<IActionResult> UpdateAddress(
+		Guid employeeId,
+		Guid addressId,
+		UpdateEmployeeAddressCommand command)
+	{
+		if (employeeId != command.EmployeeId)
+		{
+			return BadRequest(
+				"The route employee id must match the command employee id.");
+		}
+
+		if (addressId != command.AddressId)
+		{
+			return BadRequest(
+				"The route address id must match the command address id.");
+		}
+
+		await Mediator.Send(command);
+
+		return NoContent();
+	}
+	
+	[HttpDelete("{employeeId:guid}/addresses/{addressId:guid}")]
+	public async Task<IActionResult> DeleteAddress(
+		Guid employeeId,
+		Guid addressId)
+	{
+		await Mediator.Send(
+			new DeleteEmployeeAddressCommand(
+				employeeId,
+				addressId));
+
+		return NoContent();
+	}
+	
+	[HttpPost("{employeeId:guid}/contacts")]
+	public async Task<ActionResult<Guid>> CreateContact(
+		Guid employeeId,
+		CreateEmployeeContactCommand command)
+	{
+		if (employeeId != command.EmployeeId)
+		{
+			return BadRequest(
+				"The route employee id must match the command employee id.");
+		}
+
+		var id = await Mediator.Send(command);
+
+		return Ok(id);
+	}
+	
+	[HttpPut("{employeeId:guid}/contacts/{contactId:guid}")]
+	public async Task<IActionResult> UpdateContact(
+		Guid employeeId,
+		Guid contactId,
+		UpdateEmployeeContactCommand command)
+	{
+		if (employeeId != command.EmployeeId)
+		{
+			return BadRequest(
+				"The route employee id must match the command employee id.");
+		}
+
+		if (contactId != command.ContactId)
+		{
+			return BadRequest(
+				"The route contact id must match the command contact id.");
+		}
+
+		await Mediator.Send(command);
+
+		return NoContent();
+	}
+	
+	[HttpDelete("{employeeId:guid}/contacts/{contactId:guid}")]
+	public async Task<IActionResult> DeleteContact(
+		Guid employeeId,
+		Guid contactId)
+	{
+		await Mediator.Send(
+			new DeleteEmployeeContactCommand(
+				employeeId,
+				contactId));
+
+		return NoContent();
+	}
+	
+	[HttpPut("{employeeId:guid}/emergency-contact")]
+	public async Task<IActionResult> UpsertEmergencyContact(
+		Guid employeeId,
+		UpsertEmployeeEmergencyContactCommand command)
+	{
+		if (employeeId != command.EmployeeId)
+		{
+			return BadRequest(
+				"The route employee id must match the command employee id.");
+		}
+
+		await Mediator.Send(command);
+
+		return NoContent();
+	}
+	
+	[HttpDelete("{employeeId:guid}/emergency-contact")]
+	public async Task<IActionResult> DeleteEmergencyContact(
+		Guid employeeId)
+	{
+		await Mediator.Send(
+			new DeleteEmployeeEmergencyContactCommand(
+				employeeId));
+
+		return NoContent();
+	}
 }

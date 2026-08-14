@@ -4,13 +4,19 @@ using HRVault.Domain.Entities;
 
 namespace HRVault.Application.Common.Interfaces;
 
-public interface IEmployeeRepository : IRepository<Employee>
+public interface IEmployeeRepository
+    : IRepository<Employee>
 {
     Task<List<Employee>> GetAllByCompanyAsync(
         Guid companyId,
         CancellationToken cancellationToken = default);
 
     Task<Employee?> GetByIdAndCompanyAsync(
+        Guid id,
+        Guid companyId,
+        CancellationToken cancellationToken = default);
+
+    Task<Employee?> GetDetailsByIdAndCompanyAsync(
         Guid id,
         Guid companyId,
         CancellationToken cancellationToken = default);

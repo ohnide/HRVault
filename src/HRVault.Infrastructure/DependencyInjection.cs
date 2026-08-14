@@ -47,12 +47,28 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
 		
 		services.AddScoped<
+			IEmployeeProfileRepository,
+			EmployeeProfileRepository>();
+		
+		services.AddScoped<
 			IAuditLogRepository,
 			AuditLogRepository>();
 		
 		services.AddScoped<
 			IRefreshTokenRepository,
 			RefreshTokenRepository>();
+			
+		services.AddScoped<
+			IEmployeeAddressRepository,
+			EmployeeAddressRepository>();
+			
+		services.AddScoped<
+			IEmployeeContactRepository,
+			EmployeeContactRepository>();
+			
+		services.AddScoped<
+			IEmployeeEmergencyContactRepository,
+			EmployeeEmergencyContactRepository>();
 			
 		services.AddSingleton<
 			IRefreshTokenService,
