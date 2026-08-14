@@ -15,22 +15,25 @@ public class LoginCommandHandler
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IRefreshTokenService _refreshTokenService;
     private readonly IUnitOfWork _unitOfWork;
+	private readonly IUserRoleRepository _userRoleRepository;
 
     public LoginCommandHandler(
-        IUserRepository userRepository,
-        IPasswordHasher passwordHasher,
-        IJwtTokenGenerator jwtTokenGenerator,
-        IRefreshTokenRepository refreshTokenRepository,
-        IRefreshTokenService refreshTokenService,
-        IUnitOfWork unitOfWork)
-    {
-        _userRepository = userRepository;
-        _passwordHasher = passwordHasher;
-        _jwtTokenGenerator = jwtTokenGenerator;
-        _refreshTokenRepository = refreshTokenRepository;
-        _refreshTokenService = refreshTokenService;
-        _unitOfWork = unitOfWork;
-    }
+		IUserRepository userRepository,
+		IPasswordHasher passwordHasher,
+		IJwtTokenGenerator jwtTokenGenerator,
+		IRefreshTokenRepository refreshTokenRepository,
+		IRefreshTokenService refreshTokenService,
+		IUserRoleRepository userRoleRepository,
+		IUnitOfWork unitOfWork)
+	{
+		_userRepository = userRepository;
+		_passwordHasher = passwordHasher;
+		_jwtTokenGenerator = jwtTokenGenerator;
+		_refreshTokenRepository = refreshTokenRepository;
+		_refreshTokenService = refreshTokenService;
+		_userRoleRepository = userRoleRepository;
+		_unitOfWork = unitOfWork;
+	}
 
     public async Task<LoginResponse> Handle(
         LoginCommand request,
@@ -60,6 +63,11 @@ public class LoginCommandHandler
                 "Email ou password inválidos.");
         }
 
+		var roles =
+			await _userRoleRepository.GetRolesByUserIdAsync(
+				user.Id,
+				cancellationToken);
+
         var jwtUser = new JwtUser
         {
             UserId = user.Id,
@@ -69,7 +77,9 @@ public class LoginCommandHandler
             IsAdministrator = user.IsAdministrator,
             IsPlatformAdministrator =
                 user.IsPlatformAdministrator,
-            Roles = new List<string>()
+            Roles = roles
+				.Select(x => x.Name)
+				.ToList()
         };
 
         var accessToken =
