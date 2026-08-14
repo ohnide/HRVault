@@ -1,0 +1,54 @@
+using HRVault.Application.Authentication.Interfaces;
+using HRVault.Application.Common.Interfaces;
+using HRVault.Infrastructure.Authentication.Jwt;
+using HRVault.Infrastructure.Persistence;
+using HRVault.Infrastructure.Persistence.Repositories;
+using HRVault.Infrastructure.Security;
+using HRVault.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace HRVault.Infrastructure;
+
+public static class DependencyInjection
+{
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseNpgsql(
+                configuration.GetConnectionString(
+                    "DefaultConnection")));
+
+        services.AddScoped<ICompanyRepository, CompanyRepository>();
+        services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+        services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+        services.AddScoped<IPositionRepository, PositionRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRoleRepository, RoleRepository>();
+        services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
+        services.AddScoped<IUserRoleRepository, UserRoleRepository>();
+        services.AddScoped<IPermissionRepository, PermissionRepository>();
+
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        services.AddScoped<IPasswordHasher, PasswordHasher>();
+
+        services.Configure<JwtOptions>(
+            configuration.GetSection(
+                JwtOptions.SectionName));
+
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+
+        services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
+
+        services.AddHttpContextAccessor();
+
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IPermissionService, PermissionService>();
+
+        return services;
+    }
+}

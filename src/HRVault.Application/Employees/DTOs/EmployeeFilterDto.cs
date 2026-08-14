@@ -1,0 +1,14 @@
+namespace HRVault.Application.Employees.DTOs;
+
+public class EmployeeFilterDto
+{
+    public Guid? DepartmentId { get; set; }
+
+    public Guid? PositionId { get; set; }
+
+    public string? Search { get; set; }
+
+    public int Page { get; set; } = 1;
+
+    public int PageSize { get; set; } = 20;
+}

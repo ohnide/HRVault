@@ -1,0 +1,33 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- ASP.NET -->
+    <PackageVersion Include="BCrypt.Net-Next" Version="4.2.0" />
+    <PackageVersion Include="FluentValidation" Version="12.1.1" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.8" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Identity.Stores" Version="9.0.8" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="9.0.3" />
+    <!-- Entity Framework -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.8" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.8" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.8" />
+    <!-- PostgreSQL -->
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+    <!-- CQRS -->
+    <PackageVersion Include="MediatR" Version="13.1.0" />
+    <!-- Validation -->
+    <!-- Mapping -->
+    <PackageVersion Include="AutoMapper" Version="12.0.1" />
+    <PackageVersion Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+    <!-- Logging -->
+    <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageVersion Include="Serilog.Sinks.Seq" Version="9.0.0" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <!-- Authentication -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.8" />
+  </ItemGroup>
+</Project>
