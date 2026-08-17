@@ -8,7 +8,15 @@ public class Document : SoftDeleteEntity
 
     public Employee Employee { get; set; } = null!;
 
-    public string Category { get; set; } = string.Empty;
+    public Guid EmployeeDocumentTypeId { get; set; }
+
+    public EmployeeDocumentType EmployeeDocumentType { get; set; } = null!;
+
+    public DateOnly? IssueDate { get; set; }
+
+    public DateOnly? ExpirationDate { get; set; }
+
+    public string? Notes { get; set; }
 
     public string FileName { get; set; } = string.Empty;
 

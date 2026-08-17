@@ -6,7 +6,15 @@ public class EmployeeDocumentDto
 
     public Guid EmployeeId { get; set; }
 
-    public string Category { get; set; } = string.Empty;
+    public Guid EmployeeDocumentTypeId { get; set; }
+
+	public string EmployeeDocumentTypeName { get; set; } = string.Empty;
+
+	public DateOnly? IssueDate { get; set; }
+
+	public DateOnly? ExpirationDate { get; set; }
+
+	public string? Notes { get; set; }
 
     public string FileName { get; set; } = string.Empty;
 
@@ -17,4 +25,6 @@ public class EmployeeDocumentDto
     public Guid UploadedByUserId { get; set; }
 
     public DateTime UploadedAt { get; set; }
+	
+	public string Status { get; set; } = string.Empty;
 }

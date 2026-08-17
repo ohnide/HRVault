@@ -47,6 +47,9 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<EmployeeContact> EmployeeContacts => Set<EmployeeContact>();
 	
+	public DbSet<EmployeeDocumentType> DocumentTypes =>
+		Set<EmployeeDocumentType>();
+	
 	public DbSet<RefreshToken> RefreshTokens =>
 		Set<RefreshToken>();
 

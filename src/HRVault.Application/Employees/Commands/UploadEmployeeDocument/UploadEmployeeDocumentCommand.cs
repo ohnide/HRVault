@@ -4,7 +4,10 @@ namespace HRVault.Application.Employees.Commands.UploadEmployeeDocument;
 
 public record UploadEmployeeDocumentCommand(
     Guid EmployeeId,
-    string Category,
+    Guid EmployeeDocumentTypeId,
+    DateOnly? IssueDate,
+    DateOnly? ExpirationDate,
+    string? Notes,
     string FileName,
     string ContentType,
     long Size,

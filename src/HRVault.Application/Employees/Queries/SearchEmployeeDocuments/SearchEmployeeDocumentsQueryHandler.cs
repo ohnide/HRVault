@@ -1,20 +1,21 @@
 using HRVault.Application.Common.Exceptions;
 using HRVault.Application.Common.Interfaces;
+using HRVault.Application.Common.Models;
 using HRVault.Application.Employees.DTOs;
 using MediatR;
 
-namespace HRVault.Application.Employees.Queries.GetEmployeeDocuments;
+namespace HRVault.Application.Employees.Queries.SearchEmployeeDocuments;
 
-public class GetEmployeeDocumentsQueryHandler
+public class SearchEmployeeDocumentsQueryHandler
     : IRequestHandler<
-        GetEmployeeDocumentsQuery,
-        List<EmployeeDocumentDto>>
+        SearchEmployeeDocumentsQuery,
+        PagedResult<EmployeeDocumentDto>>
 {
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IDocumentRepository _documentRepository;
     private readonly ICurrentUserService _currentUser;
 
-    public GetEmployeeDocumentsQueryHandler(
+    public SearchEmployeeDocumentsQueryHandler(
         IEmployeeRepository employeeRepository,
         IDocumentRepository documentRepository,
         ICurrentUserService currentUser)
@@ -24,8 +25,8 @@ public class GetEmployeeDocumentsQueryHandler
         _currentUser = currentUser;
     }
 
-    public async Task<List<EmployeeDocumentDto>> Handle(
-        GetEmployeeDocumentsQuery request,
+    public async Task<PagedResult<EmployeeDocumentDto>> Handle(
+        SearchEmployeeDocumentsQuery request,
         CancellationToken cancellationToken)
     {
         if (_currentUser.CompanyId is null)
@@ -43,27 +44,9 @@ public class GetEmployeeDocumentsQueryHandler
                 "Employee not found.");
         }
 
-        var documents =
-            await _documentRepository.GetAllByEmployeeIdAsync(
-                request.EmployeeId,
-                cancellationToken);
-
-        return documents
-            .Select(x => new EmployeeDocumentDto
-            {
-                Id = x.Id,
-                EmployeeId = x.EmployeeId,
-                EmployeeDocumentTypeId = x.EmployeeDocumentTypeId,
-				EmployeeDocumentTypeName = x.EmployeeDocumentType.Name,
-				IssueDate = x.IssueDate,
-				ExpirationDate = x.ExpirationDate,
-				Notes = x.Notes,
-                FileName = x.FileName,
-                MimeType = x.MimeType,
-                Size = x.Size,
-                UploadedByUserId = x.UploadedByUserId,
-                UploadedAt = x.UploadedAt
-            })
-            .ToList();
+        return await _documentRepository.SearchByEmployeeAsync(
+            request.EmployeeId,
+            request.Filter,
+            cancellationToken);
     }
 }

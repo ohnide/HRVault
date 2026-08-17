@@ -4,7 +4,13 @@ namespace HRVault.Api.Models.Employees;
 
 public class UploadEmployeeDocumentRequest
 {
-    public string Category { get; set; } = string.Empty;
+	public Guid EmployeeDocumentTypeId { get; set; }
 
-    public IFormFile File { get; set; } = null!;
+	public DateOnly? IssueDate { get; set; }
+
+	public DateOnly? ExpirationDate { get; set; }
+
+	public string? Notes { get; set; }
+
+	public IFormFile File { get; set; } = null!;
 }

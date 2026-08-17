@@ -7,19 +7,39 @@ namespace HRVault.Infrastructure.Configurations;
 public class DocumentConfiguration
     : IEntityTypeConfiguration<Document>
 {
-    public void Configure(EntityTypeBuilder<Document> builder)
+    public void Configure(
+        EntityTypeBuilder<Document> builder)
     {
         builder.ToTable("Documents");
 
         builder.HasKey(x => x.Id);
 
+        // Document -> Employee
         builder.HasOne(x => x.Employee)
             .WithMany(x => x.Documents)
-            .HasForeignKey(x => x.EmployeeId);
+            .HasForeignKey(x => x.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
 
-        builder.Property(x => x.Category)
-            .HasMaxLength(100)
-            .IsRequired();
+        // Document -> EmployeeDocumentType
+        builder.HasOne(x => x.EmployeeDocumentType)
+            .WithMany(x => x.Documents)
+            .HasForeignKey(x => x.EmployeeDocumentTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Property(x => x.EmployeeDocumentTypeId)
+			.IsRequired();
+
+		builder.HasOne(x => x.EmployeeDocumentType)
+			.WithMany(x => x.Documents)
+			.HasForeignKey(x => x.EmployeeDocumentTypeId)
+			.OnDelete(DeleteBehavior.Restrict);
+
+		builder.Property(x => x.Notes)
+			.HasMaxLength(1000);
+
+		builder.Property(x => x.IssueDate);
+
+		builder.Property(x => x.ExpirationDate);
 
         builder.Property(x => x.FileName)
             .HasMaxLength(255)
@@ -33,8 +53,26 @@ public class DocumentConfiguration
             .HasMaxLength(100)
             .IsRequired();
 
+        builder.Property(x => x.Notes)
+            .HasMaxLength(1000);
+
+        builder.Property(x => x.IssueDate);
+
+        builder.Property(x => x.ExpirationDate);
+
+        builder.Property(x => x.Size)
+            .IsRequired();
+
+        builder.Property(x => x.UploadedByUserId)
+            .IsRequired();
+
+        builder.Property(x => x.UploadedAt)
+            .IsRequired();
+
         builder.HasIndex(x => x.EmployeeId);
 
-        builder.HasIndex(x => x.Category);
+        builder.HasIndex(x => x.EmployeeDocumentTypeId);
+
+        builder.HasIndex(x => x.ExpirationDate);
     }
 }

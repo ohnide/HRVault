@@ -10,6 +10,7 @@ public class UploadEmployeeDocumentCommandHandler
 {
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IDocumentRepository _documentRepository;
+    private readonly IEmployeeDocumentTypeRepository _documentTypeRepository;
     private readonly IFileStorageService _fileStorageService;
     private readonly ICurrentUserService _currentUser;
     private readonly IUnitOfWork _unitOfWork;
@@ -17,12 +18,14 @@ public class UploadEmployeeDocumentCommandHandler
     public UploadEmployeeDocumentCommandHandler(
         IEmployeeRepository employeeRepository,
         IDocumentRepository documentRepository,
+        IEmployeeDocumentTypeRepository documentTypeRepository,
         IFileStorageService fileStorageService,
         ICurrentUserService currentUser,
         IUnitOfWork unitOfWork)
     {
         _employeeRepository = employeeRepository;
         _documentRepository = documentRepository;
+        _documentTypeRepository = documentTypeRepository;
         _fileStorageService = fileStorageService;
         _currentUser = currentUser;
         _unitOfWork = unitOfWork;
@@ -38,10 +41,13 @@ public class UploadEmployeeDocumentCommandHandler
             throw new UnauthorizedAccessException();
         }
 
+        var companyId =
+            _currentUser.CompanyId.Value;
+
         var employee =
             await _employeeRepository.GetByIdAndCompanyAsync(
                 request.EmployeeId,
-                _currentUser.CompanyId.Value,
+                companyId,
                 cancellationToken);
 
         if (employee is null)
@@ -50,10 +56,45 @@ public class UploadEmployeeDocumentCommandHandler
                 "Employee not found.");
         }
 
+        var documentType =
+            await _documentTypeRepository.GetByIdAndCompanyAsync(
+                request.EmployeeDocumentTypeId,
+                companyId,
+                cancellationToken);
+
+        if (documentType is null)
+        {
+            throw new NotFoundException(
+                "Document type not found.");
+        }
+
         if (request.Size <= 0)
         {
             throw new BusinessRuleException(
                 "The file is empty.");
+        }
+
+        if (!documentType.HasExpiration &&
+            request.ExpirationDate.HasValue)
+        {
+            throw new BusinessRuleException(
+                "This document type does not support an expiration date.");
+        }
+
+        if (documentType.HasExpiration &&
+            !request.ExpirationDate.HasValue)
+        {
+            throw new BusinessRuleException(
+                "Expiration date is required for this document type.");
+        }
+
+        if (request.IssueDate.HasValue &&
+            request.ExpirationDate.HasValue &&
+            request.ExpirationDate.Value <
+            request.IssueDate.Value)
+        {
+            throw new BusinessRuleException(
+                "Expiration date cannot be earlier than issue date.");
         }
 
         var storageName =
@@ -68,13 +109,28 @@ public class UploadEmployeeDocumentCommandHandler
             var document = new Document
             {
                 EmployeeId = request.EmployeeId,
-                Category = request.Category,
+
+                EmployeeDocumentTypeId =
+                    request.EmployeeDocumentTypeId,
+
+                IssueDate = request.IssueDate,
+
+                ExpirationDate =
+                    request.ExpirationDate,
+
+                Notes = request.Notes,
+
                 FileName = request.FileName,
+
                 StorageName = storageName,
+
                 MimeType = request.ContentType,
+
                 Size = request.Size,
+
                 UploadedByUserId =
                     _currentUser.UserId.Value,
+
                 UploadedAt = DateTime.UtcNow
             };
 
@@ -89,8 +145,6 @@ public class UploadEmployeeDocumentCommandHandler
         }
         catch
         {
-            // Se a gravação na BD falhar,
-            // não deixamos um ficheiro órfão no MinIO.
             await _fileStorageService.DeleteAsync(
                 storageName,
                 cancellationToken);

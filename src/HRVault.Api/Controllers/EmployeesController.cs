@@ -21,6 +21,11 @@ using HRVault.Application.Employees.Commands.UploadEmployeeDocument;
 using HRVault.Application.Employees.Queries.GetEmployeeDocuments;
 using HRVault.Application.Employees.Queries.DownloadEmployeeDocument;
 using HRVault.Application.Employees.Commands.DeleteEmployeeDocument;
+using HRVault.Application.Employees.Commands.CreateEmployeeDocumentType;
+using HRVault.Application.Employees.Queries.GetEmployeeDocumentTypes;
+using HRVault.Application.Employees.Commands.UpdateEmployeeDocumentType;
+using HRVault.Application.Employees.Commands.DeleteEmployeeDocumentType;
+using HRVault.Application.Employees.Queries.SearchEmployeeDocuments;
 using HRVault.Api.Models.Employees;
 using Microsoft.AspNetCore.Mvc;
 
@@ -281,10 +286,10 @@ public class EmployeesController : BaseApiController
 				"The uploaded file is empty.");
 		}
 
-		if (string.IsNullOrWhiteSpace(request.Category))
+		if (request.EmployeeDocumentTypeId == Guid.Empty)
 		{
 			return BadRequest(
-				"Category is required.");
+				"EmployeeDocumentTypeId is required.");
 		}
 
 		await using var stream =
@@ -293,7 +298,11 @@ public class EmployeesController : BaseApiController
 		var command =
 			new UploadEmployeeDocumentCommand(
 				EmployeeId: employeeId,
-				Category: request.Category,
+				EmployeeDocumentTypeId:
+					request.EmployeeDocumentTypeId,
+				IssueDate: request.IssueDate,
+				ExpirationDate: request.ExpirationDate,
+				Notes: request.Notes,
 				FileName: request.File.FileName,
 				ContentType: request.File.ContentType,
 				Size: request.File.Length,
@@ -342,5 +351,62 @@ public class EmployeesController : BaseApiController
 				documentId));
 
 		return NoContent();
+	}
+	
+	[HttpGet("document-types")]
+	public async Task<ActionResult<List<EmployeeDocumentTypeDto>>> GetDocumentTypes()
+	{
+		var result = await Mediator.Send(
+			new GetEmployeeDocumentTypesQuery());
+
+		return Ok(result);
+	}
+
+	[HttpPost("document-types")]
+	public async Task<ActionResult<Guid>> CreateDocumentType(
+		CreateEmployeeDocumentTypeCommand command)
+	{
+		var id = await Mediator.Send(command);
+
+		return Ok(id);
+	}
+	
+	[HttpPut("document-types/{id:guid}")]
+	public async Task<IActionResult> UpdateDocumentType(
+		Guid id,
+		UpdateEmployeeDocumentTypeCommand command)
+	{
+		if (id != command.Id)
+		{
+			return BadRequest(
+				"The route id must match the command id.");
+		}
+
+		await Mediator.Send(command);
+
+		return NoContent();
+	}
+
+	[HttpDelete("document-types/{id:guid}")]
+	public async Task<IActionResult> DeleteDocumentType(
+		Guid id)
+	{
+		await Mediator.Send(
+			new DeleteEmployeeDocumentTypeCommand(id));
+
+		return NoContent();
+	}
+	
+	[HttpGet("{employeeId:guid}/documents/search")]
+	public async Task<ActionResult<PagedResult<EmployeeDocumentDto>>> SearchDocuments(
+		Guid employeeId,
+		[FromQuery] EmployeeDocumentFilterDto filter)
+	{
+		var result = await Mediator.Send(
+			new SearchEmployeeDocumentsQuery(
+				employeeId,
+				filter));
+
+		return Ok(result);
 	}
 }

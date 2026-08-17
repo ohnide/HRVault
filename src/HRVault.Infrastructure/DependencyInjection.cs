@@ -85,6 +85,10 @@ public static class DependencyInjection
 		services.AddSingleton<
 			IRefreshTokenService,
 			RefreshTokenService>();
+			
+		services.AddScoped<
+			IEmployeeDocumentTypeRepository,
+			EmployeeDocumentTypeRepository>();
 
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IPermissionService, PermissionService>();
