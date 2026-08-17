@@ -18,6 +18,10 @@ using HRVault.Application.Employees.Commands.DeleteEmployeeContact;
 using HRVault.Application.Employees.Commands.UpsertEmployeeEmergencyContact;
 using HRVault.Application.Employees.Commands.DeleteEmployeeEmergencyContact;
 using HRVault.Application.Employees.Commands.UploadEmployeeDocument;
+using HRVault.Application.Employees.Queries.GetEmployeeDocuments;
+using HRVault.Application.Employees.Queries.DownloadEmployeeDocument;
+using HRVault.Application.Employees.Commands.DeleteEmployeeDocument;
+using HRVault.Api.Models.Employees;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HRVault.Api.Controllers;
@@ -259,31 +263,84 @@ public class EmployeesController : BaseApiController
 	}
 	
 	[HttpPost("{employeeId:guid}/documents")]
+	[Consumes("multipart/form-data")]
 	[RequestSizeLimit(20_000_000)]
 	public async Task<ActionResult<Guid>> UploadDocument(
 		Guid employeeId,
-		[FromForm] string category,
-		[FromForm] IFormFile file)
+		[FromForm] UploadEmployeeDocumentRequest request)
 	{
-		if (file is null || file.Length == 0)
+		if (request.File is null)
 		{
 			return BadRequest(
-				"A valid file is required.");
+				"No file was received.");
 		}
 
-		await using var stream = file.OpenReadStream();
+		if (request.File.Length == 0)
+		{
+			return BadRequest(
+				"The uploaded file is empty.");
+		}
+
+		if (string.IsNullOrWhiteSpace(request.Category))
+		{
+			return BadRequest(
+				"Category is required.");
+		}
+
+		await using var stream =
+			request.File.OpenReadStream();
 
 		var command =
 			new UploadEmployeeDocumentCommand(
 				EmployeeId: employeeId,
-				Category: category,
-				FileName: file.FileName,
-				ContentType: file.ContentType,
-				Size: file.Length,
+				Category: request.Category,
+				FileName: request.File.FileName,
+				ContentType: request.File.ContentType,
+				Size: request.File.Length,
 				Content: stream);
 
 		var id = await Mediator.Send(command);
 
 		return Ok(id);
+	}
+	
+	[HttpGet("{employeeId:guid}/documents")]
+	public async Task<ActionResult<List<EmployeeDocumentDto>>> GetDocuments(
+		Guid employeeId)
+	{
+		var result = await Mediator.Send(
+			new GetEmployeeDocumentsQuery(
+				employeeId));
+
+		return Ok(result);
+	}
+	
+	[HttpGet("{employeeId:guid}/documents/{documentId:guid}/download")]
+	public async Task<IActionResult> DownloadDocument(
+		Guid employeeId,
+		Guid documentId)
+	{
+		var result = await Mediator.Send(
+			new DownloadEmployeeDocumentQuery(
+				employeeId,
+				documentId));
+
+		return File(
+			result.Content,
+			result.MimeType,
+			result.FileName);
+	}
+	
+	[HttpDelete("{employeeId:guid}/documents/{documentId:guid}")]
+	public async Task<IActionResult> DeleteDocument(
+		Guid employeeId,
+		Guid documentId)
+	{
+		await Mediator.Send(
+			new DeleteEmployeeDocumentCommand(
+				employeeId,
+				documentId));
+
+		return NoContent();
 	}
 }
