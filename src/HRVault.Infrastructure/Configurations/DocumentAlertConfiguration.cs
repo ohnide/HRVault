@@ -50,12 +50,8 @@ public class DocumentAlertConfiguration
 
         builder.HasIndex(x => x.AlertDate);
 
-        builder.HasIndex(x => new
-        {
-            x.DocumentId,
-            x.AlertDate
-        })
-        .IsUnique()
-        .HasFilter("\"IsDeleted\" = false");
+        builder.HasIndex(x => x.DocumentId)
+			.IsUnique()
+			.HasFilter("\"IsDeleted\" = false");
     }
 }

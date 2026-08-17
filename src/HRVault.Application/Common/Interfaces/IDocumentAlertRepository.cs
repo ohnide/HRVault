@@ -5,9 +5,8 @@ namespace HRVault.Application.Common.Interfaces;
 public interface IDocumentAlertRepository
 {
     Task<bool> ExistsAsync(
-        Guid documentId,
-        DateOnly alertDate,
-        CancellationToken cancellationToken = default);
+		Guid documentId,
+		CancellationToken cancellationToken = default);
 
     Task AddAsync(
         DocumentAlert alert,

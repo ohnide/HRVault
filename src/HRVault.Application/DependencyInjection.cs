@@ -21,6 +21,7 @@ public static class DependencyInjection
 			typeof(DependencyInjection).Assembly);
 
 		services.AddAutoMapper(
+			cfg => { },
 			typeof(DependencyInjection).Assembly);
 
         services.AddTransient(

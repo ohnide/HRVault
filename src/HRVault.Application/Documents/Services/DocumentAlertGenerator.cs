@@ -46,10 +46,9 @@ public class DocumentAlertGenerator
         foreach (var document in result.Items)
         {
             var exists =
-                await _alertRepository.ExistsAsync(
-                    document.DocumentId,
-                    today,
-                    cancellationToken);
+				await _alertRepository.ExistsAsync(
+					document.DocumentId,
+					cancellationToken);
 
             if (exists)
                 continue;

@@ -17,18 +17,15 @@ public class DocumentAlertRepository
     }
 
     public async Task<bool> ExistsAsync(
-        Guid documentId,
-        DateOnly alertDate,
-        CancellationToken cancellationToken = default)
-    {
-        return await _context.DocumentAlerts
-            .AsNoTracking()
-            .AnyAsync(
-                x =>
-                    x.DocumentId == documentId &&
-                    x.AlertDate == alertDate,
-                cancellationToken);
-    }
+		Guid documentId,
+		CancellationToken cancellationToken = default)
+	{
+		return await _context.DocumentAlerts
+			.AsNoTracking()
+			.AnyAsync(
+				x => x.DocumentId == documentId,
+				cancellationToken);
+	}
 
     public async Task AddAsync(
         DocumentAlert alert,

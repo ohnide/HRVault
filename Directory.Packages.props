@@ -22,7 +22,7 @@
     <PackageVersion Include="MediatR" Version="13.1.0" />
     <!-- Validation -->
     <!-- Mapping -->
-    <PackageVersion Include="AutoMapper" Version="12.0.1" />
+    <PackageVersion Include="AutoMapper" Version="16.2.0" />
     <PackageVersion Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
     <!-- Logging -->
     <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
