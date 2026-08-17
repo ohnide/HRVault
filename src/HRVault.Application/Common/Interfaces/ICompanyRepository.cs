@@ -9,4 +9,7 @@ public interface ICompanyRepository : IRepository<Company>
     Task<PagedResult<CompanyDto>> SearchAsync(
         CompanyFilterDto filter,
         CancellationToken cancellationToken = default);
+
+    Task<List<Company>> GetAllActiveAsync(
+        CancellationToken cancellationToken = default);
 }

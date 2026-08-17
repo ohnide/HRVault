@@ -58,4 +58,13 @@ public class CompanyRepository
             PageSize = filter.PageSize
         };
     }
+	
+	public async Task<List<Company>> GetAllActiveAsync(
+		CancellationToken cancellationToken = default)
+	{
+		return await Context.Companies
+			.AsNoTracking()
+			.OrderBy(x => x.Name)
+			.ToListAsync(cancellationToken);
+	}
 }

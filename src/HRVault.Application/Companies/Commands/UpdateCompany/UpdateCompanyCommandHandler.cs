@@ -52,6 +52,8 @@ public class UpdateCompanyCommandHandler
         company.VatNumber = request.VatNumber;
         company.Address = request.Address;
         company.LogoUrl = request.LogoUrl;
+		company.HrNotificationEmail =
+			request.HrNotificationEmail;
 
         await _repository.UpdateAsync(
             company,

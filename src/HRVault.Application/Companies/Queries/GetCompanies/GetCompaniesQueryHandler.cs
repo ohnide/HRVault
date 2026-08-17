@@ -42,7 +42,9 @@ public class GetCompaniesQueryHandler
                 Name = x.Name,
                 VatNumber = x.VatNumber,
                 Address = x.Address,
-                LogoUrl = x.LogoUrl
+                LogoUrl = x.LogoUrl,
+				HrNotificationEmail =
+					x.HrNotificationEmail
             })
             .ToList();
     }

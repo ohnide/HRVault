@@ -49,7 +49,9 @@ public class GetCompanyByIdQueryHandler
             Name = company.Name,
             VatNumber = company.VatNumber,
             Address = company.Address,
-            LogoUrl = company.LogoUrl
+            LogoUrl = company.LogoUrl,
+			HrNotificationEmail =
+				company.HrNotificationEmail
         };
     }
 }

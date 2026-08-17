@@ -344,4 +344,47 @@ public class DocumentRepository
 			PageSize = filter.PageSize
 		};
 	}
+	
+	public async Task<DocumentSummaryDto> GetSummaryByCompanyAsync(
+		Guid companyId,
+		CancellationToken cancellationToken = default)
+	{
+		var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+		var query = _context.Documents
+			.AsNoTracking()
+			.Where(x => x.Employee.CompanyId == companyId);
+
+		var total = await query.CountAsync(
+			cancellationToken);
+
+		var expired = await query.CountAsync(
+			x =>
+				x.ExpirationDate.HasValue &&
+				x.ExpirationDate.Value < today,
+			cancellationToken);
+
+		var expiring = await query.CountAsync(
+			x =>
+				x.ExpirationDate.HasValue &&
+				x.ExpirationDate.Value >= today &&
+				x.EmployeeDocumentType
+					.ExpirationWarningDays.HasValue &&
+				x.ExpirationDate.Value <=
+					today.AddDays(
+						x.EmployeeDocumentType
+							.ExpirationWarningDays.Value),
+			cancellationToken);
+
+		var valid =
+			total - expired - expiring;
+
+		return new DocumentSummaryDto
+		{
+			Total = total,
+			Valid = valid,
+			Expiring = expiring,
+			Expired = expired
+		};
+	}
 }

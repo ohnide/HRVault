@@ -33,4 +33,8 @@ public interface IDocumentRepository
 		Guid companyId,
 		ExpiringDocumentFilterDto filter,
 		CancellationToken cancellationToken = default);
+		
+	Task<DocumentSummaryDto> GetSummaryByCompanyAsync(
+		Guid companyId,
+		CancellationToken cancellationToken = default);
 }

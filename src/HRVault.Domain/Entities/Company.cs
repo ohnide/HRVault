@@ -11,6 +11,8 @@ public class Company : SoftDeleteEntity
     public string? LogoUrl { get; set; }
 
     public string? Address { get; set; }
+	
+	public string? HrNotificationEmail { get; set; }
 
     public ICollection<User> Users { get; set; }
         = new List<User>();

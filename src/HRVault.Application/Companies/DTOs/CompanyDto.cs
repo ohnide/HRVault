@@ -11,4 +11,6 @@ public class CompanyDto
     public string? Address { get; set; }
 
     public string? LogoUrl { get; set; }
+	
+	public string? HrNotificationEmail { get; set; }
 }

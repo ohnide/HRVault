@@ -7,5 +7,6 @@ public record UpdateCompanyCommand(
     string Name,
     string VatNumber,
     string? Address,
-    string? LogoUrl
+    string? LogoUrl,
+	string? HrNotificationEmail
 ) : IRequest;

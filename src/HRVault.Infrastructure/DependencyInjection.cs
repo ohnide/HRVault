@@ -8,7 +8,9 @@ using HRVault.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using HRVault.Infrastructure.BackgroundJobs;
 using HRVault.Infrastructure.Storage;
+using HRVault.Infrastructure.Email;
 
 namespace HRVault.Infrastructure;
 
@@ -34,6 +36,17 @@ public static class DependencyInjection
         services.AddScoped<IPermissionRepository, PermissionRepository>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+		
+		services.Configure<SmtpOptions>(
+			configuration.GetSection(
+				SmtpOptions.SectionName));
+
+		services.AddScoped<
+			IEmailService,
+			SmtpEmailService>();
+		
+		services.AddHostedService<
+			DocumentAlertBackgroundService>();
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
 
@@ -89,6 +102,10 @@ public static class DependencyInjection
 		services.AddScoped<
 			IEmployeeDocumentTypeRepository,
 			EmployeeDocumentTypeRepository>();
+		
+		services.AddScoped<
+			IDocumentAlertRepository,
+			DocumentAlertRepository>();
 
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IPermissionService, PermissionService>();

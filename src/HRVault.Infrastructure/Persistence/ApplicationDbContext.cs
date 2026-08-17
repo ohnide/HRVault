@@ -55,6 +55,9 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<EmployeeEmergencyContact> EmployeeEmergencyContacts =>
         Set<EmployeeEmergencyContact>();
+		
+	public DbSet<DocumentAlert> DocumentAlerts =>
+		Set<DocumentAlert>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

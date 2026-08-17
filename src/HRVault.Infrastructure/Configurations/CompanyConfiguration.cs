@@ -26,6 +26,9 @@ public class CompanyConfiguration
 
         builder.Property(x => x.Address)
             .HasMaxLength(500);
+			
+		builder.Property(x => x.HrNotificationEmail)
+			.HasMaxLength(255);
 
         builder.HasIndex(x => x.VatNumber)
             .IsUnique();
@@ -41,5 +44,6 @@ public class CompanyConfiguration
         builder.HasMany(x => x.Employees)
             .WithOne(x => x.Company)
             .HasForeignKey(x => x.CompanyId);
+			
     }
 }
