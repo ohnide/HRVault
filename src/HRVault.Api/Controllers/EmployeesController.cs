@@ -268,6 +268,7 @@ public class EmployeesController : BaseApiController
 	}
 	
 	[HttpPost("{employeeId:guid}/documents")]
+	[HasPermission("Documents.Upload")]
 	[Consumes("multipart/form-data")]
 	[RequestSizeLimit(20_000_000)]
 	public async Task<ActionResult<Guid>> UploadDocument(
@@ -314,6 +315,7 @@ public class EmployeesController : BaseApiController
 	}
 	
 	[HttpGet("{employeeId:guid}/documents")]
+	[HasPermission("Documents.View")]
 	public async Task<ActionResult<List<EmployeeDocumentDto>>> GetDocuments(
 		Guid employeeId)
 	{
@@ -325,6 +327,7 @@ public class EmployeesController : BaseApiController
 	}
 	
 	[HttpGet("{employeeId:guid}/documents/{documentId:guid}/download")]
+	[HasPermission("Documents.View")]
 	public async Task<IActionResult> DownloadDocument(
 		Guid employeeId,
 		Guid documentId)
@@ -341,6 +344,7 @@ public class EmployeesController : BaseApiController
 	}
 	
 	[HttpDelete("{employeeId:guid}/documents/{documentId:guid}")]
+	[HasPermission("Documents.Delete")]
 	public async Task<IActionResult> DeleteDocument(
 		Guid employeeId,
 		Guid documentId)
@@ -354,6 +358,7 @@ public class EmployeesController : BaseApiController
 	}
 	
 	[HttpGet("document-types")]
+	[HasPermission("Documents.ManageTypes")]
 	public async Task<ActionResult<List<EmployeeDocumentTypeDto>>> GetDocumentTypes()
 	{
 		var result = await Mediator.Send(
@@ -363,6 +368,7 @@ public class EmployeesController : BaseApiController
 	}
 
 	[HttpPost("document-types")]
+	[HasPermission("Documents.ManageTypes")]
 	public async Task<ActionResult<Guid>> CreateDocumentType(
 		CreateEmployeeDocumentTypeCommand command)
 	{
@@ -372,6 +378,7 @@ public class EmployeesController : BaseApiController
 	}
 	
 	[HttpPut("document-types/{id:guid}")]
+	[HasPermission("Documents.ManageTypes")]
 	public async Task<IActionResult> UpdateDocumentType(
 		Guid id,
 		UpdateEmployeeDocumentTypeCommand command)
@@ -388,6 +395,7 @@ public class EmployeesController : BaseApiController
 	}
 
 	[HttpDelete("document-types/{id:guid}")]
+	[HasPermission("Documents.ManageTypes")]
 	public async Task<IActionResult> DeleteDocumentType(
 		Guid id)
 	{
@@ -398,6 +406,7 @@ public class EmployeesController : BaseApiController
 	}
 	
 	[HttpGet("{employeeId:guid}/documents/search")]
+	[HasPermission("Documents.View")]
 	public async Task<ActionResult<PagedResult<EmployeeDocumentDto>>> SearchDocuments(
 		Guid employeeId,
 		[FromQuery] EmployeeDocumentFilterDto filter)

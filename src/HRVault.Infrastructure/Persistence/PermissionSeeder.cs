@@ -34,6 +34,31 @@ public static class PermissionSeeder
                 Name = "Eliminar funcionários",
                 Description = "Permite eliminar funcionários."
             },
+			
+			new Permission
+			{
+				Code = "Documents.View",
+				Name = "Ver documentos",
+				Description = "Permite consultar e descarregar documentos."
+			},
+			new Permission
+			{
+				Code = "Documents.Upload",
+				Name = "Carregar documentos",
+				Description = "Permite carregar documentos de funcionários."
+			},
+			new Permission
+			{
+				Code = "Documents.Delete",
+				Name = "Eliminar documentos",
+				Description = "Permite eliminar documentos de funcionários."
+			},
+			new Permission
+			{
+				Code = "Documents.ManageTypes",
+				Name = "Gerir tipos de documentos",
+				Description = "Permite criar, editar e eliminar tipos de documentos."
+			},
 
             new Permission
             {

@@ -105,7 +105,12 @@ public static class DatabaseSeeder
             ("Employees.Update", "Editar funcionários"),
             ("Employees.Delete", "Eliminar funcionários"),
 
-            ("Departments.View", "Ver departamentos"),
+			("Documents.View", "Ver documentos"),
+			("Documents.Upload", "Carregar documentos"),
+			("Documents.Delete", "Eliminar documentos"),
+			("Documents.ManageTypes", "Gerir tipos de documentos"),
+
+			("Departments.View", "Ver departamentos"),
             ("Departments.Create", "Criar departamentos"),
             ("Departments.Update", "Editar departamentos"),
             ("Departments.Delete", "Eliminar departamentos"),

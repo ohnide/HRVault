@@ -1,6 +1,7 @@
 using HRVault.Domain.Entities;
 using HRVault.Application.Common.Models;
 using HRVault.Application.Employees.DTOs;
+using HRVault.Application.Documents.DTOs;
 
 namespace HRVault.Application.Common.Interfaces;
 
@@ -26,5 +27,10 @@ public interface IDocumentRepository
 	Task<PagedResult<EmployeeDocumentDto>> SearchByEmployeeAsync(
 		Guid employeeId,
 		EmployeeDocumentFilterDto filter,
+		CancellationToken cancellationToken = default);
+		
+	Task<PagedResult<ExpiringDocumentDto>> SearchByCompanyAsync(
+		Guid companyId,
+		ExpiringDocumentFilterDto filter,
 		CancellationToken cancellationToken = default);
 }
