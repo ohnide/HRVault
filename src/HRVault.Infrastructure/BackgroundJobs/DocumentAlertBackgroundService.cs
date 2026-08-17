@@ -3,6 +3,7 @@ using HRVault.Application.Documents.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace HRVault.Infrastructure.BackgroundJobs;
 
@@ -11,20 +12,36 @@ public class DocumentAlertBackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<DocumentAlertBackgroundService> _logger;
+	private readonly DocumentAlertOptions _options;
 
-    public DocumentAlertBackgroundService(
-        IServiceScopeFactory scopeFactory,
-        ILogger<DocumentAlertBackgroundService> logger)
-    {
-        _scopeFactory = scopeFactory;
-        _logger = logger;
-    }
+	
+	public DocumentAlertBackgroundService(
+		IServiceScopeFactory scopeFactory,
+		ILogger<DocumentAlertBackgroundService> logger,
+		IOptions<DocumentAlertOptions> options)
+	{
+		_scopeFactory = scopeFactory;
+		_logger = logger;
+		_options = options.Value;
+	}
 
     protected override async Task ExecuteAsync(
 		CancellationToken stoppingToken)
 	{
 		_logger.LogInformation(
 			"Document alert background service started.");
+
+		if (_options.GenerationHour is < 0 or > 23)
+		{
+			throw new InvalidOperationException(
+				"DocumentAlerts:GenerationHour must be between 0 and 23.");
+		}
+
+		if (_options.GenerationMinute is < 0 or > 59)
+		{
+			throw new InvalidOperationException(
+				"DocumentAlerts:GenerationMinute must be between 0 and 59.");
+		}
 
 		while (!stoppingToken.IsCancellationRequested)
 		{
@@ -36,8 +53,8 @@ public class DocumentAlertBackgroundService
 					now.Year,
 					now.Month,
 					now.Day,
-					7,
-					0,
+					_options.GenerationHour,
+					_options.GenerationMinute,
 					0,
 					now.Offset);
 

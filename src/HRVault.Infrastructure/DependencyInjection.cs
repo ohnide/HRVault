@@ -37,6 +37,10 @@ public static class DependencyInjection
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 		
+		services.Configure<DocumentAlertOptions>(
+			configuration.GetSection(
+				DocumentAlertOptions.SectionName));
+		
 		services.Configure<SmtpOptions>(
 			configuration.GetSection(
 				SmtpOptions.SectionName));
