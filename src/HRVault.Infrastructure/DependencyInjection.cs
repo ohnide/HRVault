@@ -48,6 +48,10 @@ public static class DependencyInjection
 		services.AddScoped<
 			IEmailService,
 			SmtpEmailService>();
+			
+		services.AddScoped<
+			IAbsenceTypeRepository,
+			AbsenceTypeRepository>();
 		
 		services.AddHostedService<
 			DocumentAlertBackgroundService>();

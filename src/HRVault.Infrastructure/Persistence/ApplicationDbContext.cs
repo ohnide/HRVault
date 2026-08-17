@@ -58,6 +58,12 @@ public class ApplicationDbContext : DbContext
 		
 	public DbSet<DocumentAlert> DocumentAlerts =>
 		Set<DocumentAlert>();
+		
+	public DbSet<AbsenceType> AbsenceTypes =>
+		Set<AbsenceType>();
+
+	public DbSet<EmployeeAbsence> EmployeeAbsences =>
+		Set<EmployeeAbsence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

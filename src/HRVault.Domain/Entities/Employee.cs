@@ -48,4 +48,7 @@ public class Employee : SoftDeleteEntity
     public EmployeeEmergencyContact? EmergencyContact { get; set; }
 
     public ICollection<Document> Documents { get; set; } = new List<Document>();
+	
+	public ICollection<EmployeeAbsence> Absences { get; set; }
+		= new List<EmployeeAbsence>();
 }
