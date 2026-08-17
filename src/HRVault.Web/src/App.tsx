@@ -34,6 +34,7 @@ import Users from "./pages/Users";
 
 
 import Roles from "./pages/Roles";
+import DocumentTypes from "./pages/DocumentTypes";
 
 
 
@@ -214,6 +215,11 @@ function App() {
         <Route
           path="/roles"
           element={<Roles />}
+        />
+
+        <Route
+          path="/settings/document-types"
+          element={<DocumentTypes />}
         />
 		
 		<Route
