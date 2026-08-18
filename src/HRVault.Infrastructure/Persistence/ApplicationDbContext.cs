@@ -47,6 +47,11 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<EmployeeContact> EmployeeContacts => Set<EmployeeContact>();
 	
+	public DbSet<VacationBalance> VacationBalances => Set<VacationBalance>();
+	
+	public DbSet<VacationRequest> VacationRequests =>
+		Set<VacationRequest>();
+	
 	public DbSet<EmployeeDocumentType> DocumentTypes =>
 		Set<EmployeeDocumentType>();
 	

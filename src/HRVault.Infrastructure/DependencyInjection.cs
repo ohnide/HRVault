@@ -37,6 +37,10 @@ public static class DependencyInjection
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 		
+		services.AddScoped<
+			IVacationBalanceRepository,
+			VacationBalanceRepository>();
+		
 		services.Configure<DocumentAlertOptions>(
 			configuration.GetSection(
 				DocumentAlertOptions.SectionName));
@@ -56,6 +60,10 @@ public static class DependencyInjection
 		services.AddScoped<
 			IEmployeeAbsenceRepository,
 			EmployeeAbsenceRepository>();
+			
+		services.AddScoped<
+			IVacationRequestRepository,
+			VacationRequestRepository>();
 		
 		services.AddHostedService<
 			DocumentAlertBackgroundService>();

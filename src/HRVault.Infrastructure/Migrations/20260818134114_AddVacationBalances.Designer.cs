@@ -3,6 +3,7 @@ using System;
 using HRVault.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HRVault.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260818134114_AddVacationBalances")]
+    partial class AddVacationBalances
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1196,54 +1199,6 @@ namespace HRVault.Infrastructure.Migrations
                     b.ToTable("VacationBalances", (string)null);
                 });
 
-            modelBuilder.Entity("HRVault.Domain.Entities.VacationRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ApprovedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Days")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
-
-                    b.Property<Guid>("EmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompanyId");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("EmployeeId", "StartDate", "EndDate");
-
-                    b.ToTable("VacationRequests", (string)null);
-                });
-
             modelBuilder.Entity("HRVault.Domain.Entities.AbsenceType", b =>
                 {
                     b.HasOne("HRVault.Domain.Entities.Company", "Company")
@@ -1508,25 +1463,6 @@ namespace HRVault.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("HRVault.Domain.Entities.VacationBalance", b =>
-                {
-                    b.HasOne("HRVault.Domain.Entities.Company", "Company")
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("HRVault.Domain.Entities.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Company");
-
-                    b.Navigation("Employee");
-                });
-
-            modelBuilder.Entity("HRVault.Domain.Entities.VacationRequest", b =>
                 {
                     b.HasOne("HRVault.Domain.Entities.Company", "Company")
                         .WithMany()
