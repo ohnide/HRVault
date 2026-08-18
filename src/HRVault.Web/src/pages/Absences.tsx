@@ -75,6 +75,10 @@ export default function Absences() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [statusAction, setStatusAction] = useState<{
+    id: string;
+    action: "approve" | "reject";
+  } | null>(null);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -252,6 +256,39 @@ export default function Absences() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function changePendingStatus(
+    absence: Absence,
+    action: "approve" | "reject"
+  ) {
+    const actionLabel = action === "approve" ? "aprovar" : "rejeitar";
+
+    if (
+      !window.confirm(
+        `Tem a certeza de que pretende ${actionLabel} a ausência de ${absence.employeeName}?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setStatusAction({ id: absence.id, action });
+      setError("");
+
+      await api.put(`/Absences/${absence.id}/${action}`);
+
+      await loadAbsences(page);
+    } catch (error: any) {
+      console.error(`Erro ao ${actionLabel} ausência:`, error);
+      setError(
+        error.response?.data?.message ??
+          error.response?.data?.title ??
+          `Não foi possível ${actionLabel} a ausência.`
+      );
+    } finally {
+      setStatusAction(null);
     }
   }
 
@@ -600,19 +637,65 @@ export default function Absences() {
                         <StatusBadge status={absence.status} />
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex justify-end gap-3">
+                        <div className="flex flex-wrap justify-end gap-3">
+                          {absence.status === "Pending" && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={
+                                  statusAction?.id === absence.id ||
+                                  deletingId === absence.id
+                                }
+                                onClick={() =>
+                                  void changePendingStatus(absence, "approve")
+                                }
+                                className="font-medium text-green-600 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {statusAction?.id === absence.id &&
+                                statusAction.action === "approve"
+                                  ? "A aprovar..."
+                                  : "Aprovar"}
+                              </button>
+
+                              <button
+                                type="button"
+                                disabled={
+                                  statusAction?.id === absence.id ||
+                                  deletingId === absence.id
+                                }
+                                onClick={() =>
+                                  void changePendingStatus(absence, "reject")
+                                }
+                                className="font-medium text-amber-600 hover:text-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {statusAction?.id === absence.id &&
+                                statusAction.action === "reject"
+                                  ? "A rejeitar..."
+                                  : "Rejeitar"}
+                              </button>
+                            </>
+                          )}
+
                           <button
                             type="button"
+                            disabled={
+                              statusAction?.id === absence.id ||
+                              deletingId === absence.id
+                            }
                             onClick={() => openEdit(absence)}
-                            className="font-medium text-blue-600 hover:text-blue-700"
+                            className="font-medium text-blue-600 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Editar
                           </button>
+
                           <button
                             type="button"
-                            disabled={deletingId === absence.id}
+                            disabled={
+                              deletingId === absence.id ||
+                              statusAction?.id === absence.id
+                            }
                             onClick={() => void deleteAbsence(absence)}
-                            className="font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
+                            className="font-medium text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {deletingId === absence.id ? "A apagar..." : "Apagar"}
                           </button>

@@ -5,6 +5,8 @@ using HRVault.Application.Absences.Commands.UpdateEmployeeAbsence;
 using HRVault.Application.Absences.DTOs;
 using HRVault.Application.Absences.Queries.GetEmployeeAbsenceById;
 using HRVault.Application.Absences.Queries.SearchEmployeeAbsences;
+using HRVault.Application.Absences.Commands.ApproveEmployeeAbsence;
+using HRVault.Application.Absences.Commands.RejectEmployeeAbsence;
 using HRVault.Application.Common.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -85,4 +87,28 @@ public class AbsencesController
 
         return NoContent();
     }
+	
+	[HttpPut("{id:guid}/approve")]
+	[HasPermission("Absences.Approve")]
+	public async Task<IActionResult> Approve(
+		Guid id)
+	{
+		await Mediator.Send(
+			new ApproveEmployeeAbsenceCommand(
+				id));
+
+		return NoContent();
+	}
+
+	[HttpPut("{id:guid}/reject")]
+	[HasPermission("Absences.Approve")]
+	public async Task<IActionResult> Reject(
+		Guid id)
+	{
+		await Mediator.Send(
+			new RejectEmployeeAbsenceCommand(
+				id));
+
+		return NoContent();
+	}
 }
