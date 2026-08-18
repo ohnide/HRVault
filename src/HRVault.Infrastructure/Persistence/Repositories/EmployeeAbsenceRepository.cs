@@ -51,6 +51,13 @@ public class EmployeeAbsenceRepository
                 x => x.EmployeeId ==
                      filter.EmployeeId.Value);
         }
+		
+		if (filter.DepartmentId.HasValue)
+		{
+			query = query.Where(
+				x => x.Employee.DepartmentId ==
+					 filter.DepartmentId.Value);
+		}
 
         if (filter.AbsenceTypeId.HasValue)
         {
@@ -144,7 +151,10 @@ public class EmployeeAbsenceRepository
                         x.Reason,
 
                     Notes =
-                        x.Notes
+                        x.Notes,
+						
+					AbsenceTypeColor =
+						x.AbsenceType.Color
                 })
             .ToListAsync(
                 cancellationToken);

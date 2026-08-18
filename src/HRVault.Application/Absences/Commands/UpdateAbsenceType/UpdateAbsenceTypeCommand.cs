@@ -8,5 +8,6 @@ public record UpdateAbsenceTypeCommand(
     string? Description,
     bool RequiresApproval,
     bool RequiresDocument,
-    bool IsPaid
+    bool IsPaid,
+	string Color
 ) : IRequest;

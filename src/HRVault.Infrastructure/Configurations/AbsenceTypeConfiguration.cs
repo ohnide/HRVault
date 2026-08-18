@@ -17,6 +17,11 @@ public class AbsenceTypeConfiguration
         builder.Property(x => x.Name)
             .HasMaxLength(150)
             .IsRequired();
+			
+		builder.Property(x => x.Color)
+			.HasMaxLength(7)
+			.IsRequired()
+			.HasDefaultValue("#3B82F6");
 
         builder.Property(x => x.Description)
             .HasMaxLength(500);

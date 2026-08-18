@@ -55,7 +55,9 @@ public class GetEmployeeAbsenceByIdQueryHandler
             Reason =
                 absence.Reason,
             Notes =
-                absence.Notes
+                absence.Notes,
+			AbsenceTypeColor =
+				absence.AbsenceType.Color
         };
     }
 }

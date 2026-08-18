@@ -14,4 +14,6 @@ public class AbsenceTypeDto
     public bool RequiresDocument { get; set; }
 
     public bool IsPaid { get; set; }
+	
+	public string Color { get; set; } = "#3B82F6";
 }

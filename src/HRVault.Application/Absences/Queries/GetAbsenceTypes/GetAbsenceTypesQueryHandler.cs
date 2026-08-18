@@ -42,7 +42,8 @@ public class GetAbsenceTypesQueryHandler
                     x.RequiresApproval,
                 RequiresDocument =
                     x.RequiresDocument,
-                IsPaid = x.IsPaid
+                IsPaid = x.IsPaid,
+				Color = x.Color
             })
             .ToList();
     }

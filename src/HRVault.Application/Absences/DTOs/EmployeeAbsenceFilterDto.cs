@@ -3,6 +3,8 @@ namespace HRVault.Application.Absences.DTOs;
 public class EmployeeAbsenceFilterDto
 {
     public Guid? EmployeeId { get; set; }
+	
+	public Guid? DepartmentId { get; set; }
 
     public Guid? AbsenceTypeId { get; set; }
 

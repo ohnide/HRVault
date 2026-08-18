@@ -8,6 +8,7 @@ interface AbsenceType {
   requiresApproval: boolean;
   requiresDocument: boolean;
   isPaid: boolean;
+  color: string;
 }
 
 interface AbsenceTypeForm {
@@ -16,6 +17,7 @@ interface AbsenceTypeForm {
   requiresApproval: boolean;
   requiresDocument: boolean;
   isPaid: boolean;
+  color: string;
 }
 
 const emptyForm: AbsenceTypeForm = {
@@ -24,6 +26,7 @@ const emptyForm: AbsenceTypeForm = {
   requiresApproval: true,
   requiresDocument: false,
   isPaid: false,
+  color: "#3B82F6",
 };
 
 export default function AbsenceTypes() {
@@ -73,6 +76,7 @@ export default function AbsenceTypes() {
       requiresApproval: type.requiresApproval,
       requiresDocument: type.requiresDocument,
       isPaid: type.isPaid,
+      color: type.color || "#3B82F6",
     });
     setError("");
     setShowForm(true);
@@ -106,12 +110,18 @@ export default function AbsenceTypes() {
       return;
     }
 
+    if (!/^#[0-9A-Fa-f]{6}$/.test(form.color)) {
+      setError("A cor deve estar no formato hexadecimal #RRGGBB.");
+      return;
+    }
+
     const payload = {
       name,
       description: description || null,
       requiresApproval: form.requiresApproval,
       requiresDocument: form.requiresDocument,
       isPaid: form.isPaid,
+      color: form.color.toUpperCase(),
     };
 
     try {
@@ -221,6 +231,47 @@ export default function AbsenceTypes() {
                 </p>
               </label>
 
+              <div className="block">
+                <span className="text-sm font-medium text-slate-700">
+                  Cor no calendário
+                </span>
+                <div className="mt-1 flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={form.color}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        color: event.target.value.toUpperCase(),
+                      }))
+                    }
+                    className="h-11 w-14 cursor-pointer rounded-lg border border-slate-300 bg-white p-1"
+                    aria-label="Selecionar cor"
+                  />
+                  <input
+                    type="text"
+                    value={form.color}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        color: event.target.value.toUpperCase(),
+                      }))
+                    }
+                    maxLength={7}
+                    placeholder="#3B82F6"
+                    className="w-32 rounded-lg border border-slate-300 px-3 py-2.5 text-sm uppercase text-slate-800 outline-none focus:border-blue-500"
+                  />
+                  <span
+                    className="h-8 w-8 rounded-full border border-slate-200 shadow-sm"
+                    style={{ backgroundColor: isValidColor(form.color) ? form.color : "#3B82F6" }}
+                    title="Pré-visualização"
+                  />
+                </div>
+                <p className="mt-1 text-xs text-slate-400">
+                  Esta cor será usada para identificar este tipo de ausência no calendário.
+                </p>
+              </div>
+
               <label className="block lg:col-span-2">
                 <span className="text-sm font-medium text-slate-700">Descrição</span>
                 <textarea
@@ -313,6 +364,7 @@ export default function AbsenceTypes() {
             <table className="w-full text-left text-sm">
               <thead className="border-b bg-slate-50">
                 <tr>
+                  <th className="px-6 py-4 font-semibold text-slate-600">Cor</th>
                   <th className="px-6 py-4 font-semibold text-slate-600">Nome</th>
                   <th className="px-6 py-4 font-semibold text-slate-600">Descrição</th>
                   <th className="px-6 py-4 font-semibold text-slate-600">Aprovação</th>
@@ -325,6 +377,17 @@ export default function AbsenceTypes() {
               <tbody className="divide-y">
                 {types.map((type) => (
                   <tr key={type.id} className="hover:bg-slate-50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-5 w-5 rounded-full border border-slate-200 shadow-sm"
+                          style={{ backgroundColor: type.color || "#3B82F6" }}
+                        />
+                        <span className="font-mono text-xs text-slate-500">
+                          {type.color || "#3B82F6"}
+                        </span>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 font-medium text-slate-900">
                       {type.name}
                     </td>
@@ -358,7 +421,7 @@ export default function AbsenceTypes() {
 
                 {types.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                       Não existem tipos de ausência.
                     </td>
                   </tr>
@@ -370,6 +433,10 @@ export default function AbsenceTypes() {
       </section>
     </div>
   );
+}
+
+function isValidColor(value: string) {
+  return /^#[0-9A-Fa-f]{6}$/.test(value);
 }
 
 interface OptionProps {

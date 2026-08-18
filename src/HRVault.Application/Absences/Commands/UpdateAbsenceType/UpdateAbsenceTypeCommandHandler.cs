@@ -11,6 +11,27 @@ public class UpdateAbsenceTypeCommandHandler
     private readonly ICurrentUserService _currentUser;
     private readonly IUnitOfWork _unitOfWork;
 
+	private static string NormalizeColor(
+		string? color)
+	{
+		if (string.IsNullOrWhiteSpace(color))
+		{
+			return "#3B82F6";
+		}
+
+		var normalized = color.Trim().ToUpperInvariant();
+
+		if (!System.Text.RegularExpressions.Regex.IsMatch(
+				normalized,
+				"^#[0-9A-F]{6}$"))
+		{
+			throw new BusinessRuleException(
+				"Color must be a valid hexadecimal color in the format #RRGGBB.");
+		}
+
+		return normalized;
+	}
+
     public UpdateAbsenceTypeCommandHandler(
         IAbsenceTypeRepository repository,
         ICurrentUserService currentUser,
@@ -80,6 +101,9 @@ public class UpdateAbsenceTypeCommandHandler
 
         absenceType.IsPaid =
             request.IsPaid;
+			
+		absenceType.Color =
+			NormalizeColor(request.Color);
 
         await _unitOfWork.SaveChangesAsync(
             cancellationToken);

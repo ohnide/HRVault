@@ -17,6 +17,8 @@ public class AbsenceType : SoftDeleteEntity
     public bool RequiresDocument { get; set; }
 
     public bool IsPaid { get; set; }
+	
+	public string Color { get; set; } = "#3B82F6";
 
     public ICollection<EmployeeAbsence> EmployeeAbsences { get; set; }
         = new List<EmployeeAbsence>();

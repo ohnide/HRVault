@@ -12,6 +12,27 @@ public class CreateAbsenceTypeCommandHandler
     private readonly ICurrentUserService _currentUser;
     private readonly IUnitOfWork _unitOfWork;
 
+	private static string NormalizeColor(
+		string? color)
+	{
+		if (string.IsNullOrWhiteSpace(color))
+		{
+			return "#3B82F6";
+		}
+
+		var normalized = color.Trim().ToUpperInvariant();
+
+		if (!System.Text.RegularExpressions.Regex.IsMatch(
+				normalized,
+				"^#[0-9A-F]{6}$"))
+		{
+			throw new BusinessRuleException(
+				"Color must be a valid hexadecimal color in the format #RRGGBB.");
+		}
+
+		return normalized;
+	}
+
     public CreateAbsenceTypeCommandHandler(
         IAbsenceTypeRepository repository,
         ICurrentUserService currentUser,
@@ -52,6 +73,9 @@ public class CreateAbsenceTypeCommandHandler
                 "An absence type with this name already exists.");
         }
 
+		var color =
+			NormalizeColor(request.Color);
+
         var absenceType =
             new AbsenceType
             {
@@ -67,7 +91,8 @@ public class CreateAbsenceTypeCommandHandler
                 RequiresDocument =
                     request.RequiresDocument,
                 IsPaid =
-                    request.IsPaid
+                    request.IsPaid,
+				Color = color
             };
 
         await _repository.AddAsync(

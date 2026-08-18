@@ -24,4 +24,7 @@ public class EmployeeAbsenceDto
     public string? Reason { get; set; }
 
     public string? Notes { get; set; }
+	
+	public string AbsenceTypeColor { get; set; }
+		= "#3B82F6";
 }
