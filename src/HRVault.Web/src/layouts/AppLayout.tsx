@@ -17,6 +17,11 @@ const mainMenuItems = [
     path: "/employees",
     icon: "👥",
   },
+  {
+    label: "Ausências",
+    path: "/absences",
+    icon: "📆",
+  },
 ];
 
 const settingsMenuItems = [
@@ -44,6 +49,11 @@ const settingsMenuItems = [
     label: "Tipos de documentos",
     path: "/settings/document-types",
     icon: "📄",
+  },
+  {
+    label: "Tipos de ausência",
+    path: "/settings/absence-types",
+    icon: "📅",
   },
 ];
 

@@ -52,6 +52,10 @@ public static class DependencyInjection
 		services.AddScoped<
 			IAbsenceTypeRepository,
 			AbsenceTypeRepository>();
+			
+		services.AddScoped<
+			IEmployeeAbsenceRepository,
+			EmployeeAbsenceRepository>();
 		
 		services.AddHostedService<
 			DocumentAlertBackgroundService>();

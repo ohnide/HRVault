@@ -35,6 +35,8 @@ import Users from "./pages/Users";
 
 import Roles from "./pages/Roles";
 import DocumentTypes from "./pages/DocumentTypes";
+import AbsenceTypes from "./pages/AbsenceTypes";
+import Absences from "./pages/Absences";
 
 
 
@@ -198,6 +200,11 @@ function App() {
         />
 
         <Route
+          path="/absences"
+          element={<Absences />}
+        />
+
+        <Route
           path="/departments"
           element={<Departments />}
         />
@@ -220,6 +227,11 @@ function App() {
         <Route
           path="/settings/document-types"
           element={<DocumentTypes />}
+        />
+
+        <Route
+          path="/settings/absence-types"
+          element={<AbsenceTypes />}
         />
 		
 		<Route
