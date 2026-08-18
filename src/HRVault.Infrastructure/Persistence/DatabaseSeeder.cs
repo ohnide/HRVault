@@ -109,6 +109,12 @@ public static class DatabaseSeeder
 			("Documents.Upload", "Carregar documentos"),
 			("Documents.Delete", "Eliminar documentos"),
 			("Documents.ManageTypes", "Gerir tipos de documentos"),
+			
+			("Absences.View", "Ver ausências"),
+			("Absences.Create", "Criar ausências"),
+			("Absences.Update", "Editar ausências"),
+			("Absences.Delete", "Eliminar ausências"),
+			("Absences.ManageTypes", "Gerir tipos de ausência"),
 
 			("Departments.View", "Ver departamentos"),
             ("Departments.Create", "Criar departamentos"),

@@ -14,6 +14,7 @@ public class AbsenceTypesController
     : BaseApiController
 {
     [HttpGet]
+	[HasPermission("Absences.ManageTypes")]
     public async Task<ActionResult<List<AbsenceTypeDto>>> GetAll()
     {
         var result =
@@ -24,6 +25,7 @@ public class AbsenceTypesController
     }
 
     [HttpPost]
+	[HasPermission("Absences.ManageTypes")]
     public async Task<ActionResult<Guid>> Create(
         CreateAbsenceTypeCommand command)
     {
@@ -34,6 +36,7 @@ public class AbsenceTypesController
     }
 
     [HttpPut("{id:guid}")]
+	[HasPermission("Absences.ManageTypes")]
     public async Task<IActionResult> Update(
         Guid id,
         UpdateAbsenceTypeCommand command)
@@ -50,6 +53,7 @@ public class AbsenceTypesController
     }
 
     [HttpDelete("{id:guid}")]
+	[HasPermission("Absences.ManageTypes")]
     public async Task<IActionResult> Delete(
         Guid id)
     {

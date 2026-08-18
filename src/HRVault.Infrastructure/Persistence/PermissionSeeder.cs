@@ -59,6 +59,37 @@ public static class PermissionSeeder
 				Name = "Gerir tipos de documentos",
 				Description = "Permite criar, editar e eliminar tipos de documentos."
 			},
+			
+			new Permission
+			{
+				Code = "Absences.View",
+				Name = "Ver ausências",
+				Description = "Permite consultar ausências."
+			},
+			new Permission
+			{
+				Code = "Absences.Create",
+				Name = "Criar ausências",
+				Description = "Permite registar ausências de funcionários."
+			},
+			new Permission
+			{
+				Code = "Absences.Update",
+				Name = "Editar ausências",
+				Description = "Permite editar e alterar o estado de ausências."
+			},
+			new Permission
+			{
+				Code = "Absences.Delete",
+				Name = "Eliminar ausências",
+				Description = "Permite eliminar ausências."
+			},
+			new Permission
+			{
+				Code = "Absences.ManageTypes",
+				Name = "Gerir tipos de ausência",
+				Description = "Permite criar, editar e eliminar tipos de ausência."
+			},
 
             new Permission
             {
