@@ -49,9 +49,30 @@ interface EmployeeProfile {
   snsNumber?: string | null;
 }
 
+interface EmployeeAddress {
+  id: string;
+  type: string;
+  street: string;
+  postalCode: string;
+  city: string;
+  district?: string | null;
+  country: string;
+}
+
+interface EmployeeEmergencyContact {
+  id: string;
+  name: string;
+  relationship: string;
+  phone: string;
+  email?: string | null;
+  notes?: string | null;
+}
+
 interface EmployeeDetailsData {
   id: string;
   profile?: EmployeeProfile | null;
+  addresses: EmployeeAddress[];
+  emergencyContact?: EmployeeEmergencyContact | null;
 }
 
 export default function EditEmployee() {
@@ -85,6 +106,21 @@ export default function EditEmployee() {
   const [taxNumber, setTaxNumber] = useState("");
   const [socialSecurityNumber, setSocialSecurityNumber] = useState("");
   const [snsNumber, setSnsNumber] = useState("");
+
+  // Morada principal
+  const [addressId, setAddressId] = useState("");
+  const [street, setStreet] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [city, setCity] = useState("");
+  const [district, setDistrict] = useState("");
+  const [country, setCountry] = useState("Portugal");
+
+  // Contacto de emergência
+  const [emergencyName, setEmergencyName] = useState("");
+  const [emergencyRelationship, setEmergencyRelationship] = useState("");
+  const [emergencyPhone, setEmergencyPhone] = useState("");
+  const [emergencyEmail, setEmergencyEmail] = useState("");
+  const [emergencyNotes, setEmergencyNotes] = useState("");
 
   const [departments, setDepartments] =
     useState<Department[]>([]);
@@ -128,6 +164,10 @@ export default function EditEmployee() {
 
       const data = employeeResponse.data;
       const profile = detailsResponse.data.profile;
+      const primaryAddress =
+        detailsResponse.data.addresses?.[0] ?? null;
+      const emergencyContact =
+        detailsResponse.data.emergencyContact ?? null;
 
       setEmployee(data);
       setDepartments(departmentsResponse.data);
@@ -169,6 +209,21 @@ export default function EditEmployee() {
         profile?.socialSecurityNumber ?? ""
       );
       setSnsNumber(profile?.snsNumber ?? "");
+
+      setAddressId(primaryAddress?.id ?? "");
+      setStreet(primaryAddress?.street ?? "");
+      setPostalCode(primaryAddress?.postalCode ?? "");
+      setCity(primaryAddress?.city ?? "");
+      setDistrict(primaryAddress?.district ?? "");
+      setCountry(primaryAddress?.country ?? "Portugal");
+
+      setEmergencyName(emergencyContact?.name ?? "");
+      setEmergencyRelationship(
+        emergencyContact?.relationship ?? ""
+      );
+      setEmergencyPhone(emergencyContact?.phone ?? "");
+      setEmergencyEmail(emergencyContact?.email ?? "");
+      setEmergencyNotes(emergencyContact?.notes ?? "");
     } catch (error: any) {
       console.error(
         "Erro ao carregar funcionário:",
@@ -183,6 +238,25 @@ export default function EditEmployee() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function hasAddressData() {
+    return Boolean(
+      street.trim() ||
+        postalCode.trim() ||
+        city.trim() ||
+        district.trim()
+    );
+  }
+
+  function hasEmergencyContactData() {
+    return Boolean(
+      emergencyName.trim() ||
+        emergencyRelationship.trim() ||
+        emergencyPhone.trim() ||
+        emergencyEmail.trim() ||
+        emergencyNotes.trim()
+    );
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -204,6 +278,28 @@ export default function EditEmployee() {
 
     if (!hireDate) {
       setError("A data de entrada é obrigatória.");
+      return;
+    }
+
+    if (
+      hasAddressData() &&
+      (!street.trim() || !postalCode.trim() || !city.trim())
+    ) {
+      setError(
+        "Para guardar a morada, preencha Rua, Código postal e Localidade."
+      );
+      return;
+    }
+
+    if (
+      hasEmergencyContactData() &&
+      (!emergencyName.trim() ||
+        !emergencyRelationship.trim() ||
+        !emergencyPhone.trim())
+    ) {
+      setError(
+        "Para guardar o contacto de emergência, preencha Nome, Relação e Telefone."
+      );
       return;
     }
 
@@ -253,6 +349,47 @@ export default function EditEmployee() {
           snsNumber: snsNumber.trim() || null,
         }
       );
+
+      if (hasAddressData()) {
+        const addressPayload = {
+          employeeId: employee.id,
+          type: "Residência",
+          street: street.trim(),
+          postalCode: postalCode.trim(),
+          city: city.trim(),
+          district: district.trim() || null,
+          country: country.trim() || "Portugal",
+        };
+
+        if (addressId) {
+          await api.put(
+            `/Employees/${employee.id}/addresses/${addressId}`,
+            {
+              ...addressPayload,
+              addressId,
+            }
+          );
+        } else {
+          await api.post(
+            `/Employees/${employee.id}/addresses`,
+            addressPayload
+          );
+        }
+      }
+
+      if (hasEmergencyContactData()) {
+        await api.put(
+          `/Employees/${employee.id}/emergency-contact`,
+          {
+            employeeId: employee.id,
+            name: emergencyName.trim(),
+            relationship: emergencyRelationship.trim(),
+            phone: emergencyPhone.trim(),
+            email: emergencyEmail.trim() || null,
+            notes: emergencyNotes.trim() || null,
+          }
+        );
+      }
 
       navigate(`/employees/${employee.id}`);
     } catch (error: any) {
@@ -346,19 +483,15 @@ export default function EditEmployee() {
             />
           </Field>
 
-          <Field label="Estado" required>
-            <select
-              value={status}
+          <Field label="Email profissional">
+            <input
+              type="email"
+              value={workEmail}
               onChange={(event) =>
-                setStatus(Number(event.target.value))
+                setWorkEmail(event.target.value)
               }
               className={inputClass}
-            >
-              <option value={1}>Ativo</option>
-              <option value={2}>Inativo</option>
-              <option value={3}>Suspenso</option>
-              <option value={4}>Terminado</option>
-            </select>
+            />
           </Field>
 
           <Field label="Nome" required>
@@ -381,6 +514,56 @@ export default function EditEmployee() {
                 setLastName(event.target.value)
               }
               required
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="Telemóvel">
+            <input
+              type="tel"
+              value={mobilePhone}
+              onChange={(event) =>
+                setMobilePhone(event.target.value)
+              }
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="Tipo de contrato" required>
+            <select
+              value={contractType}
+              onChange={(event) =>
+                setContractType(
+                  Number(event.target.value)
+                )
+              }
+              className={inputClass}
+            >
+              <option value={1}>Sem termo</option>
+              <option value={2}>Termo certo</option>
+              <option value={3}>Termo incerto</option>
+            </select>
+          </Field>
+
+          <Field label="Data de entrada" required>
+            <input
+              type="date"
+              value={hireDate}
+              onChange={(event) =>
+                setHireDate(event.target.value)
+              }
+              required
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="Data de saída">
+            <input
+              type="date"
+              value={terminationDate}
+              onChange={(event) =>
+                setTerminationDate(event.target.value)
+              }
               className={inputClass}
             />
           </Field>
@@ -432,77 +615,20 @@ export default function EditEmployee() {
                 ))}
             </select>
           </Field>
-
-          <Field label="Tipo de contrato" required>
+          
+          <Field label="Estado" required>
             <select
-              value={contractType}
+              value={status}
               onChange={(event) =>
-                setContractType(
-                  Number(event.target.value)
-                )
+                setStatus(Number(event.target.value))
               }
               className={inputClass}
             >
-              <option value={1}>Sem termo</option>
-              <option value={2}>Termo certo</option>
-              <option value={3}>Termo incerto</option>
+              <option value={1}>Ativo</option>
+              <option value={2}>Inativo</option>
+              <option value={3}>Suspenso</option>
+              <option value={4}>Terminado</option>
             </select>
-          </Field>
-
-          <Field label="Email profissional">
-            <input
-              type="email"
-              value={workEmail}
-              onChange={(event) =>
-                setWorkEmail(event.target.value)
-              }
-              className={inputClass}
-            />
-          </Field>
-
-          <Field label="Telemóvel">
-            <input
-              type="tel"
-              value={mobilePhone}
-              onChange={(event) =>
-                setMobilePhone(event.target.value)
-              }
-              className={inputClass}
-            />
-          </Field>
-
-          <Field label="Email pessoal">
-            <input
-              type="email"
-              value={personalEmail}
-              onChange={(event) =>
-                setPersonalEmail(event.target.value)
-              }
-              className={inputClass}
-            />
-          </Field>
-
-          <Field label="Data de entrada" required>
-            <input
-              type="date"
-              value={hireDate}
-              onChange={(event) =>
-                setHireDate(event.target.value)
-              }
-              required
-              className={inputClass}
-            />
-          </Field>
-
-          <Field label="Data de saída">
-            <input
-              type="date"
-              value={terminationDate}
-              onChange={(event) =>
-                setTerminationDate(event.target.value)
-              }
-              className={inputClass}
-            />
           </Field>
         </FormSection>
 
@@ -562,6 +688,17 @@ export default function EditEmployee() {
               value={nationality}
               onChange={(event) =>
                 setNationality(event.target.value)
+              }
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="Email pessoal">
+            <input
+              type="email"
+              value={personalEmail}
+              onChange={(event) =>
+                setPersonalEmail(event.target.value)
               }
               className={inputClass}
             />
@@ -640,6 +777,131 @@ export default function EditEmployee() {
               className={inputClass}
             />
           </Field>
+        </FormSection>
+
+        <FormSection
+          title="Morada"
+          description="Morada principal do funcionário."
+        >
+          <Field label="Rua">
+            <input
+              type="text"
+              value={street}
+              onChange={(event) =>
+                setStreet(event.target.value)
+              }
+              className={inputClass}
+              placeholder="Rua, número, fração"
+            />
+          </Field>
+
+          <Field label="Código postal">
+            <input
+              type="text"
+              value={postalCode}
+              onChange={(event) =>
+                setPostalCode(event.target.value)
+              }
+              className={inputClass}
+              placeholder="0000-000"
+            />
+          </Field>
+
+          <Field label="Localidade">
+            <input
+              type="text"
+              value={city}
+              onChange={(event) =>
+                setCity(event.target.value)
+              }
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="Distrito">
+            <input
+              type="text"
+              value={district}
+              onChange={(event) =>
+                setDistrict(event.target.value)
+              }
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="País">
+            <input
+              type="text"
+              value={country}
+              onChange={(event) =>
+                setCountry(event.target.value)
+              }
+              className={inputClass}
+            />
+          </Field>
+        </FormSection>
+
+        <FormSection
+          title="Contacto de emergência"
+          description="Pessoa a contactar em caso de emergência."
+        >
+          <Field label="Nome">
+            <input
+              type="text"
+              value={emergencyName}
+              onChange={(event) =>
+                setEmergencyName(event.target.value)
+              }
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="Relação">
+            <input
+              type="text"
+              value={emergencyRelationship}
+              onChange={(event) =>
+                setEmergencyRelationship(event.target.value)
+              }
+              className={inputClass}
+              placeholder="Ex.: Cônjuge, Pai, Mãe"
+            />
+          </Field>
+
+          <Field label="Telefone">
+            <input
+              type="tel"
+              value={emergencyPhone}
+              onChange={(event) =>
+                setEmergencyPhone(event.target.value)
+              }
+              className={inputClass}
+            />
+          </Field>
+
+          <Field label="Email">
+            <input
+              type="email"
+              value={emergencyEmail}
+              onChange={(event) =>
+                setEmergencyEmail(event.target.value)
+              }
+              className={inputClass}
+            />
+          </Field>
+
+          <div className="md:col-span-2">
+            <Field label="Notas">
+              <textarea
+                value={emergencyNotes}
+                onChange={(event) =>
+                  setEmergencyNotes(event.target.value)
+                }
+                rows={3}
+                className={inputClass}
+              />
+            </Field>
+          </div>
         </FormSection>
 
         {error && (

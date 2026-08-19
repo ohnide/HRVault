@@ -13,5 +13,6 @@ public record CreateEmployeeCommand(
     string? PersonalEmail,
     string? MobilePhone,
     DateOnly HireDate,
+    DateOnly? TerminationDate,
     ContractType ContractType
 ) : IRequest<Guid>;
