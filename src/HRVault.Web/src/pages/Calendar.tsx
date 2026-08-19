@@ -29,6 +29,8 @@ interface Absence {
   startDateTime: string;
   endDateTime: string;
   status: string;
+  reason?: string | null;
+  notes?: string | null;
 }
 
 interface VacationRequest {
@@ -39,6 +41,7 @@ interface VacationRequest {
   endDate: string;
   days: number;
   status: string;
+  notes?: string | null;
 }
 
 interface PagedResult<T> {
@@ -61,6 +64,9 @@ interface CalendarEvent {
   start: string;
   end: string;
   status: string;
+  days?: number;
+  reason?: string | null;
+  notes?: string | null;
 }
 
 const vacationColor = "#2563EB";
@@ -229,6 +235,8 @@ export default function Calendar() {
       start: absence.startDateTime,
       end: absence.endDateTime,
       status: absence.status,
+      reason: absence.reason,
+      notes: absence.notes,
     }));
 
     const vacationEvents = vacations.map((vacation) => ({
@@ -241,6 +249,8 @@ export default function Calendar() {
       start: vacation.startDate,
       end: vacation.endDate,
       status: vacation.status,
+      days: vacation.days,
+      notes: vacation.notes,
     }));
 
     return [...absenceEvents, ...vacationEvents];
@@ -715,44 +725,281 @@ function YearMonth({
   );
 }
 
-function EventDetailsModal({ event, onClose }: { event: CalendarEvent; onClose: () => void }) {
+function EventDetailsModal({
+  event,
+  onClose,
+}: {
+  event: CalendarEvent;
+  onClose: () => void;
+}) {
+  const isVacation = event.source === "vacation";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onMouseDown={onClose}>
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between border-b px-6 py-5">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onMouseDown={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl bg-white shadow-2xl"
+        onMouseDown={(mouseEvent) => mouseEvent.stopPropagation()}
+      >
+        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
           <div>
-            <p className="text-sm text-slate-500">{sourceLabel(event.source)}</p>
-            <h3 className="mt-1 text-xl font-bold text-slate-900">{event.employeeName}</h3>
+            <p className="text-sm font-medium text-slate-500">
+              {sourceLabel(event.source)}
+            </p>
+
+            <h3 className="mt-1 text-xl font-bold text-slate-900">
+              {event.employeeName}
+            </h3>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg px-3 py-2 hover:bg-slate-100">✕</button>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-3 py-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Fechar"
+          >
+            ✕
+          </button>
         </div>
-        <div className="space-y-4 px-6 py-5">
+
+        <div className="space-y-5 px-6 py-5">
           <div className="flex items-center gap-3">
-            <span className="h-4 w-4 rounded-full" style={{ backgroundColor: event.color }} />
-            <strong className="text-slate-800">{event.title}</strong>
+            <span
+              className="h-4 w-4 rounded-full"
+              style={{ backgroundColor: event.color }}
+            />
+
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                {isVacation ? "Tipo" : "Tipo de ausência"}
+              </p>
+
+              <p className="font-semibold text-slate-800">
+                {event.title}
+              </p>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Detail label="Início" value={formatEventDate(event.start)} />
-            <Detail label="Fim" value={formatEventDate(event.end)} />
-            <Detail label="Estado" value={statusLabel(event.status)} />
-            <Detail label="Origem" value={sourceLabel(event.source)} />
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Detail
+              label="Início"
+              value={formatEventDate(
+                event.start,
+                !isVacation
+              )}
+            />
+
+            <Detail
+              label="Fim"
+              value={formatEventDate(
+                event.end,
+                !isVacation
+              )}
+            />
+
+            {isVacation ? (
+              <Detail
+                label="Dias"
+                value={
+                  event.days !== undefined
+                    ? `${formatNumber(event.days)} dias`
+                    : "-"
+                }
+              />
+            ) : (
+              <>
+                <Detail
+                  label="Dias abrangidos"
+                  value={formatCalendarDays(
+                    event.start,
+                    event.end
+                  )}
+                />
+                <Detail
+                  label="Duração"
+                  value={formatDuration(
+                    event.start,
+                    event.end
+                  )}
+                />
+              </>
+            )}
+
+            <Detail
+              label="Estado"
+              value={statusLabel(event.status)}
+            />
+          </div>
+
+          {!isVacation && event.reason && (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                Motivo
+              </p>
+
+              <div className="mt-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-700">
+                {event.reason}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+              Observações
+            </p>
+
+            <div className="mt-2 rounded-lg bg-slate-50 p-4 text-sm text-slate-700">
+              {event.notes?.trim() || "Sem observações."}
+            </div>
           </div>
         </div>
-        <div className="flex justify-end border-t px-6 py-4">
-          <button type="button" onClick={onClose} className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white">Fechar</button>
+
+        <div className="flex justify-end border-t border-slate-100 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900"
+          >
+            Fechar
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
-  return <div><p className="text-xs font-medium uppercase text-slate-400">{label}</p><p className="mt-1 text-sm font-semibold text-slate-800">{value}</p></div>;
+function Detail({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+
+      <p className="mt-1 text-sm font-semibold text-slate-800">
+        {value}
+      </p>
+    </div>
+  );
 }
 
-function formatEventDate(value: string) {
+function formatEventDate(
+  value: string,
+  includeTime: boolean
+) {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  if (!includeTime) {
+    return date.toLocaleDateString("pt-PT");
+  }
+
+  return date.toLocaleString("pt-PT", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
+function formatCalendarDays(
+  startValue: string,
+  endValue: string
+) {
+  const start = new Date(startValue);
+  const end = new Date(endValue);
+
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    end < start
+  ) {
+    return "-";
+  }
+
+  const startDay = Date.UTC(
+    start.getFullYear(),
+    start.getMonth(),
+    start.getDate()
+  );
+  const endDay = Date.UTC(
+    end.getFullYear(),
+    end.getMonth(),
+    end.getDate()
+  );
+
+  const days =
+    Math.floor((endDay - startDay) / 86400000) + 1;
+
+  return `${days} ${days === 1 ? "dia" : "dias"}`;
+}
+
+function formatDuration(
+  startValue: string,
+  endValue: string
+) {
+  const start = new Date(startValue);
+  const end = new Date(endValue);
+
+  const diffMs =
+    end.getTime() - start.getTime();
+
+  if (
+    Number.isNaN(diffMs) ||
+    diffMs <= 0
+  ) {
+    return "-";
+  }
+
+  const totalMinutes =
+    Math.round(diffMs / 60000);
+
+  const days =
+    Math.floor(totalMinutes / 1440);
+
+  const hours =
+    Math.floor(
+      (totalMinutes % 1440) / 60
+    );
+
+  const minutes =
+    totalMinutes % 60;
+
+  const parts: string[] = [];
+
+  if (days > 0) {
+    parts.push(
+      `${days} ${days === 1 ? "dia" : "dias"}`
+    );
+  }
+
+  if (hours > 0) {
+    parts.push(
+      `${hours} ${hours === 1 ? "hora" : "horas"}`
+    );
+  }
+
+  if (minutes > 0) {
+    parts.push(
+      `${minutes} min`
+    );
+  }
+
+  return parts.join(" ") || "< 1 min";
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat("pt-PT", {
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 function CalendarHeader({
