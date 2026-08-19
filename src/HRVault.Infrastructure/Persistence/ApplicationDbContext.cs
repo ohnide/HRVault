@@ -70,6 +70,14 @@ public class ApplicationDbContext : DbContext
 	public DbSet<EmployeeAbsence> EmployeeAbsences =>
 		Set<EmployeeAbsence>();
 
+	public DbSet<WorkSchedule> WorkSchedules => Set<WorkSchedule>();
+
+	public DbSet<WorkScheduleDay> WorkScheduleDays => Set<WorkScheduleDay>();
+
+	public DbSet<WorkSchedulePeriod> WorkSchedulePeriods => Set<WorkSchedulePeriod>();
+
+	public DbSet<EmployeeWorkSchedule> EmployeeWorkSchedules => Set<EmployeeWorkSchedule>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

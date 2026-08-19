@@ -54,5 +54,8 @@ public class Employee : SoftDeleteEntity
 	
 	public ICollection<EmployeeAbsence> Absences { get; set; }
 		= new List<EmployeeAbsence>();
+
+	public ICollection<EmployeeWorkSchedule> WorkSchedules { get; set; }
+		= new List<EmployeeWorkSchedule>();
 		
 }
