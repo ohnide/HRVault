@@ -94,6 +94,7 @@ export default function Calendar() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   useEffect(() => {
     void loadReferenceData();
@@ -388,6 +389,7 @@ export default function Calendar() {
           month={calendarMonth}
           events={events}
           loading={loading}
+          onEventClick={setSelectedEvent}
           onPrevious={() =>
             setCalendarMonth(
               (current) =>
@@ -420,6 +422,7 @@ export default function Calendar() {
           year={calendarMonth.getFullYear()}
           events={events}
           loading={loading}
+          onEventClick={setSelectedEvent}
           onPrevious={() =>
             setCalendarMonth(
               (current) =>
@@ -455,6 +458,13 @@ export default function Calendar() {
         />
       )}
 
+      {selectedEvent && (
+        <EventDetailsModal
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+        />
+      )}
+
       <Legend absenceTypes={absenceTypes} />
     </div>
   );
@@ -464,6 +474,7 @@ function MonthCalendar({
   month,
   events,
   loading,
+  onEventClick,
   onPrevious,
   onNext,
   onToday,
@@ -471,6 +482,7 @@ function MonthCalendar({
   month: Date;
   events: CalendarEvent[];
   loading: boolean;
+  onEventClick: (event: CalendarEvent) => void;
   onPrevious: () => void;
   onNext: () => void;
   onToday: () => void;
@@ -540,10 +552,12 @@ function MonthCalendar({
 
                     <div className="space-y-1.5">
                       {dayEvents.slice(0, 4).map((event) => (
-                        <div
+                        <button
+                          type="button"
                           key={`${event.source}-${event.id}`}
+                          onClick={() => onEventClick(event)}
                           title={`${event.employeeName} — ${event.title} — ${sourceLabel(event.source)} — ${statusLabel(event.status)}`}
-                          className="block w-full truncate rounded-md border px-2 py-1.5 text-left text-xs font-medium"
+                          className="block w-full truncate rounded-md border px-2 py-1.5 text-left text-xs font-medium hover:brightness-95"
                           style={eventColorStyle(event.color)}
                         >
                           <span className="block truncate">
@@ -552,7 +566,7 @@ function MonthCalendar({
                           <span className="block truncate text-[11px] font-normal opacity-80">
                             {event.title}
                           </span>
-                        </div>
+                        </button>
                       ))}
 
                       {dayEvents.length > 4 && (
@@ -576,6 +590,7 @@ function YearCalendar({
   year,
   events,
   loading,
+  onEventClick,
   onPrevious,
   onNext,
   onToday,
@@ -584,6 +599,7 @@ function YearCalendar({
   year: number;
   events: CalendarEvent[];
   loading: boolean;
+  onEventClick: (event: CalendarEvent) => void;
   onPrevious: () => void;
   onNext: () => void;
   onToday: () => void;
@@ -608,6 +624,7 @@ function YearCalendar({
               year={year}
               monthIndex={monthIndex}
               events={events}
+              onEventClick={onEventClick}
               onOpen={() => onOpenMonth(monthIndex)}
             />
           ))}
@@ -621,11 +638,13 @@ function YearMonth({
   year,
   monthIndex,
   events,
+  onEventClick,
   onOpen,
 }: {
   year: number;
   monthIndex: number;
   events: CalendarEvent[];
+  onEventClick: (event: CalendarEvent) => void;
   onOpen: () => void;
 }) {
   const month = new Date(year, monthIndex, 1);
@@ -677,10 +696,12 @@ function YearMonth({
               {dayEvents.length > 0 && (
                 <div className="absolute bottom-0.5 left-1/2 flex max-w-[90%] -translate-x-1/2 gap-0.5">
                   {dayEvents.slice(0, 3).map((event) => (
-                    <span
+                    <button
+                      type="button"
                       key={`${event.source}-${event.id}`}
+                      onClick={() => onEventClick(event)}
                       title={`${event.employeeName} — ${event.title}`}
-                      className="h-1.5 w-1.5 rounded-full"
+                      className="h-2 w-2 rounded-full"
                       style={{ backgroundColor: event.color }}
                     />
                   ))}
@@ -692,6 +713,46 @@ function YearMonth({
       </div>
     </div>
   );
+}
+
+function EventDetailsModal({ event, onClose }: { event: CalendarEvent; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onMouseDown={onClose}>
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between border-b px-6 py-5">
+          <div>
+            <p className="text-sm text-slate-500">{sourceLabel(event.source)}</p>
+            <h3 className="mt-1 text-xl font-bold text-slate-900">{event.employeeName}</h3>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg px-3 py-2 hover:bg-slate-100">✕</button>
+        </div>
+        <div className="space-y-4 px-6 py-5">
+          <div className="flex items-center gap-3">
+            <span className="h-4 w-4 rounded-full" style={{ backgroundColor: event.color }} />
+            <strong className="text-slate-800">{event.title}</strong>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Detail label="Início" value={formatEventDate(event.start)} />
+            <Detail label="Fim" value={formatEventDate(event.end)} />
+            <Detail label="Estado" value={statusLabel(event.status)} />
+            <Detail label="Origem" value={sourceLabel(event.source)} />
+          </div>
+        </div>
+        <div className="flex justify-end border-t px-6 py-4">
+          <button type="button" onClick={onClose} className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white">Fechar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return <div><p className="text-xs font-medium uppercase text-slate-400">{label}</p><p className="mt-1 text-sm font-semibold text-slate-800">{value}</p></div>;
+}
+
+function formatEventDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 function CalendarHeader({
