@@ -1,3 +1,4 @@
+using HRVault.Domain.Enums;
 using MediatR;
 
 namespace HRVault.Application.Employees.Commands.CreateEmployee;
@@ -11,5 +12,6 @@ public record CreateEmployeeCommand(
     string? WorkEmail,
     string? PersonalEmail,
     string? MobilePhone,
-    DateOnly HireDate
+    DateOnly HireDate,
+    ContractType ContractType
 ) : IRequest<Guid>;

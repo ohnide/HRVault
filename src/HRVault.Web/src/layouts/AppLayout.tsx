@@ -22,6 +22,16 @@ const mainMenuItems = [
     path: "/absences",
     icon: "📆",
   },
+  {
+  label: "Férias",
+  path: "/vacations",
+  icon: "🏖️",
+  },
+  {
+    label: "Calendário",
+    path: "/calendar",
+    icon: "🗓️",
+  },
 ];
 
 const settingsMenuItems = [

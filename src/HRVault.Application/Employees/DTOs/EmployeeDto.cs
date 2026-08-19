@@ -29,4 +29,6 @@ public class EmployeeDto
     public DateOnly? TerminationDate { get; set; }
 
     public EmployeeStatus Status { get; set; }
+	
+	public ContractType ContractType { get; set; }
 }

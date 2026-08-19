@@ -1,6 +1,7 @@
 using AutoMapper;
 using HRVault.Application.Common.Exceptions;
 using HRVault.Application.Common.Interfaces;
+using HRVault.Domain.Entities;
 using HRVault.Domain.Enums;
 using MediatR;
 
@@ -12,6 +13,8 @@ public class UpdateEmployeeCommandHandler
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IDepartmentRepository _departmentRepository;
     private readonly IPositionRepository _positionRepository;
+    private readonly IVacationBalanceRepository _vacationBalanceRepository;
+    private readonly IVacationEntitlementCalculator _vacationEntitlementCalculator;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
@@ -20,6 +23,8 @@ public class UpdateEmployeeCommandHandler
         IEmployeeRepository employeeRepository,
         IDepartmentRepository departmentRepository,
         IPositionRepository positionRepository,
+        IVacationBalanceRepository vacationBalanceRepository,
+        IVacationEntitlementCalculator vacationEntitlementCalculator,
         IUnitOfWork unitOfWork,
         IMapper mapper,
         ICurrentUserService currentUser)
@@ -27,6 +32,8 @@ public class UpdateEmployeeCommandHandler
         _employeeRepository = employeeRepository;
         _departmentRepository = departmentRepository;
         _positionRepository = positionRepository;
+        _vacationBalanceRepository = vacationBalanceRepository;
+        _vacationEntitlementCalculator = vacationEntitlementCalculator;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUser = currentUser;
@@ -41,14 +48,19 @@ public class UpdateEmployeeCommandHandler
 
         var companyId = _currentUser.CompanyId.Value;
 
-        var employee = await _employeeRepository.GetByIdAndCompanyAsync(
-            request.Id,
-            companyId,
-            cancellationToken);
+        var employee =
+            await _employeeRepository.GetByIdAndCompanyAsync(
+                request.Id,
+                companyId,
+                cancellationToken);
 
         if (employee is null)
+        {
             throw new NotFoundException(
                 "Employee not found.");
+        }
+
+        var oldHireDate = employee.HireDate;
 
         var employeeNumberExists =
             await _employeeRepository.EmployeeNumberExistsAsync(
@@ -101,6 +113,53 @@ public class UpdateEmployeeCommandHandler
         await _employeeRepository.UpdateAsync(
             employee,
             cancellationToken);
+
+        if (oldHireDate != employee.HireDate)
+        {
+            var vacationYear =
+                employee.HireDate.Year;
+
+            var entitledDays =
+                _vacationEntitlementCalculator.Calculate(
+                    employee.HireDate,
+                    vacationYear);
+
+            var balance =
+                await _vacationBalanceRepository
+                    .GetByEmployeeAndYearAsync(
+                        employee.Id,
+                        vacationYear,
+                        companyId,
+                        cancellationToken);
+
+            if (balance is null)
+            {
+                balance = new VacationBalance
+                {
+                    CompanyId = companyId,
+                    EmployeeId = employee.Id,
+                    Year = vacationYear,
+                    EntitledDays = entitledDays,
+                    CarriedOverDays = 0,
+                    AdjustmentDays = 0,
+                    Notes =
+                        "Saldo criado automaticamente após alteração da data de entrada."
+                };
+
+                await _vacationBalanceRepository.AddAsync(
+                    balance,
+                    cancellationToken);
+            }
+            else
+            {
+                balance.EntitledDays =
+                    entitledDays;
+
+                await _vacationBalanceRepository.UpdateAsync(
+                    balance,
+                    cancellationToken);
+            }
+        }
 
         await _unitOfWork.SaveChangesAsync(
             cancellationToken);

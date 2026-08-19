@@ -1,6 +1,5 @@
 using HRVault.Application.Common.Exceptions;
 using HRVault.Application.Common.Interfaces;
-using HRVault.Domain.Entities;
 using MediatR;
 
 namespace HRVault.Application.Vacations.Commands.SetVacationBalance;
@@ -30,23 +29,17 @@ public class SetVacationBalanceCommandHandler
         CancellationToken cancellationToken)
     {
         if (_currentUser.CompanyId is null)
+        {
             throw new UnauthorizedAccessException();
+        }
 
-        var companyId =
-            _currentUser.CompanyId.Value;
+        var companyId = _currentUser.CompanyId.Value;
 
         if (request.Year < 2000 ||
             request.Year > 2100)
         {
             throw new BusinessRuleException(
                 "Invalid vacation year.");
-        }
-
-        if (request.EntitledDays < 0 ||
-            request.CarriedOverDays < 0)
-        {
-            throw new BusinessRuleException(
-                "Vacation days cannot be negative.");
         }
 
         var employee =
@@ -70,40 +63,21 @@ public class SetVacationBalanceCommandHandler
 
         if (balance is null)
         {
-            balance = new VacationBalance
-            {
-                CompanyId = companyId,
-                EmployeeId = request.EmployeeId,
-                Year = request.Year,
-                EntitledDays = request.EntitledDays,
-                CarriedOverDays = request.CarriedOverDays,
-                AdjustmentDays = request.AdjustmentDays,
-                Notes =
-                    string.IsNullOrWhiteSpace(request.Notes)
-                        ? null
-                        : request.Notes.Trim()
-            };
-
-            await _repository.AddAsync(
-                balance,
-                cancellationToken);
+            throw new BusinessRuleException(
+                "Vacation balance not found for this employee and year.");
         }
-        else
-        {
-            balance.EntitledDays =
-                request.EntitledDays;
 
-            balance.CarriedOverDays =
-                request.CarriedOverDays;
+        balance.AdjustmentDays =
+            request.AdjustmentDays;
 
-            balance.AdjustmentDays =
-                request.AdjustmentDays;
+        balance.Notes =
+            string.IsNullOrWhiteSpace(request.Notes)
+                ? null
+                : request.Notes.Trim();
 
-            balance.Notes =
-                string.IsNullOrWhiteSpace(request.Notes)
-                    ? null
-                    : request.Notes.Trim();
-        }
+        await _repository.UpdateAsync(
+            balance,
+            cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(
             cancellationToken);

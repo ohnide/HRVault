@@ -82,11 +82,23 @@ public class VacationRequestRepository
 
 		if (filter.Year.HasValue)
 		{
-			var yearStart =
-				new DateTime(filter.Year.Value, 1, 1);
+			var yearStart = new DateTime(
+				filter.Year.Value,
+				1,
+				1,
+				0,
+				0,
+				0,
+				DateTimeKind.Utc);
 
-			var yearEnd =
-				new DateTime(filter.Year.Value, 12, 31, 23, 59, 59);
+			var yearEnd = new DateTime(
+				filter.Year.Value,
+				12,
+				31,
+				23,
+				59,
+				59,
+				DateTimeKind.Utc);
 
 			query = query.Where(
 				x =>
@@ -155,8 +167,23 @@ public class VacationRequestRepository
 		Guid? excludeRequestId = null,
 		CancellationToken cancellationToken = default)
 	{
-		var yearStart = new DateTime(year, 1, 1);
-		var yearEnd = new DateTime(year, 12, 31, 23, 59, 59);
+		var yearStart = new DateTime(
+			year,
+			1,
+			1,
+			0,
+			0,
+			0,
+			DateTimeKind.Utc);
+
+		var yearEnd = new DateTime(
+			year,
+			12,
+			31,
+			23,
+			59,
+			59,
+			DateTimeKind.Utc);
 
 		var query = _context.VacationRequests
 			.AsNoTracking()

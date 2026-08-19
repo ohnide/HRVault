@@ -101,12 +101,6 @@ export default function Absences() {
   const [page, setPage] = useState(1);
   const pageSize = 20;
   const [totalCount, setTotalCount] = useState(0);
-  const [viewMode, setViewMode] = useState<"list" | "month" | "year">("list");
-  const [calendarMonth, setCalendarMonth] = useState(
-    () => new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-  );
-  const [calendarAbsences, setCalendarAbsences] = useState<Absence[]>([]);
-  const [calendarLoading, setCalendarLoading] = useState(false);
 
   useEffect(() => {
     void loadReferenceData();
@@ -116,11 +110,6 @@ export default function Absences() {
     void loadAbsences();
   }, [page]);
 
-  useEffect(() => {
-    if (viewMode !== "list") {
-      void loadCalendarAbsences(calendarMonth);
-    }
-  }, [viewMode, calendarMonth]);
 
   async function loadReferenceData() {
     try {
@@ -175,58 +164,8 @@ export default function Absences() {
     }
   }
 
-  async function loadCalendarAbsences(month: Date) {
-    try {
-      setCalendarLoading(true);
-      setError("");
-
-      const yearStart = new Date(month.getFullYear(), 0, 1);
-      const yearEnd = new Date(
-        month.getFullYear(),
-        11,
-        31,
-        23,
-        59,
-        59,
-        999
-      );
-
-      const params: Record<string, string | number> = {
-        page: 1,
-        pageSize: 10000,
-        dateFrom: yearStart.toISOString(),
-        dateTo: yearEnd.toISOString(),
-      };
-
-      if (employeeId) params.employeeId = employeeId;
-      if (departmentId) params.departmentId = departmentId;
-      if (absenceTypeId) params.absenceTypeId = absenceTypeId;
-      if (status) params.status = status;
-
-      const response = await api.get<PagedResult<Absence>>(
-        "/Absences/search",
-        { params }
-      );
-
-      setCalendarAbsences(response.data.items);
-    } catch (error: any) {
-      console.error("Erro ao carregar calendário de ausências:", error);
-      setError(
-        error.response?.data?.message ??
-          error.response?.data?.title ??
-          "Não foi possível carregar o calendário de ausências."
-      );
-    } finally {
-      setCalendarLoading(false);
-    }
-  }
 
   function applyFilters() {
-    if (viewMode !== "list") {
-      void loadCalendarAbsences(calendarMonth);
-      return;
-    }
-
     if (page !== 1) {
       setPage(1);
     } else {
@@ -244,11 +183,7 @@ export default function Absences() {
     setPage(1);
 
     setTimeout(() => {
-      if (viewMode !== "list") {
-        void loadCalendarAbsences(calendarMonth);
-      } else {
-        void loadAbsences(1);
-      }
+      void loadAbsences(1);
     }, 0);
   }
 
@@ -328,9 +263,6 @@ export default function Absences() {
 
       closeForm();
       await loadAbsences(page);
-      if (viewMode !== "list") {
-        await loadCalendarAbsences(calendarMonth);
-      }
     } catch (error: any) {
       console.error("Erro ao guardar ausência:", error);
       setError(
@@ -364,9 +296,6 @@ export default function Absences() {
       await api.put(`/Absences/${absence.id}/${action}`);
 
       await loadAbsences(page);
-      if (viewMode !== "list") {
-        await loadCalendarAbsences(calendarMonth);
-      }
     } catch (error: any) {
       console.error(`Erro ao ${actionLabel} ausência:`, error);
       setError(
@@ -393,9 +322,6 @@ export default function Absences() {
       setError("");
       await api.delete(`/Absences/${absence.id}`);
       await loadAbsences(page);
-      if (viewMode !== "list") {
-        await loadCalendarAbsences(calendarMonth);
-      }
     } catch (error: any) {
       console.error("Erro ao apagar ausência:", error);
       setError(
@@ -416,7 +342,7 @@ export default function Absences() {
         <div>
           <h2 className="text-3xl font-bold text-slate-900">Ausências</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Gestão de férias, faltas e outras ausências dos funcionários.
+            Gestão de faltas e outras ausências dos funcionários.
           </p>
         </div>
 
@@ -593,25 +519,6 @@ export default function Absences() {
         </section>
       )}
 
-      <div className="flex items-center justify-between gap-4">
-        <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
-          {(["list", "month", "year"] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setViewMode(mode)}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition ${
-                viewMode === mode
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {mode === "list" ? "Lista" : mode === "month" ? "Mês" : "Ano"}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <section className="rounded-xl bg-white p-5 shadow-sm">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
           <Field label="Funcionário">
@@ -710,8 +617,7 @@ export default function Absences() {
         </div>
       </section>
 
-      {viewMode === "list" && (
-        <section className="overflow-hidden rounded-xl bg-white shadow-sm">
+      <section className="overflow-hidden rounded-xl bg-white shadow-sm">
           {loading ? (
             <div className="p-8 text-center text-slate-500">
               A carregar ausências...
@@ -872,86 +778,7 @@ export default function Absences() {
               </div>
             </>
           )}
-        </section>
-      )}
-
-      {viewMode === "month" && (
-        <CalendarView
-          month={calendarMonth}
-          absences={calendarAbsences}
-          absenceTypes={absenceTypes}
-          loading={calendarLoading}
-          onPreviousMonth={() =>
-            setCalendarMonth(
-              (current) =>
-                new Date(current.getFullYear(), current.getMonth() - 1, 1)
-            )
-          }
-          onNextMonth={() =>
-            setCalendarMonth(
-              (current) =>
-                new Date(current.getFullYear(), current.getMonth() + 1, 1)
-            )
-          }
-          onToday={() => {
-            const today = new Date();
-            setCalendarMonth(
-              new Date(today.getFullYear(), today.getMonth(), 1)
-            );
-          }}
-          onEdit={openEdit}
-        />
-      )}
-
-      {viewMode === "year" && (
-        <YearCalendarView
-          year={calendarMonth.getFullYear()}
-          absences={calendarAbsences}
-          absenceTypes={absenceTypes}
-          loading={calendarLoading}
-          onPreviousYear={() =>
-            setCalendarMonth(
-              (current) =>
-                new Date(
-                  current.getFullYear() - 1,
-                  current.getMonth(),
-                  1
-                )
-            )
-          }
-          onNextYear={() =>
-            setCalendarMonth(
-              (current) =>
-                new Date(
-                  current.getFullYear() + 1,
-                  current.getMonth(),
-                  1
-                )
-            )
-          }
-          onToday={() => {
-            const today = new Date();
-            setCalendarMonth(
-              new Date(
-                today.getFullYear(),
-                today.getMonth(),
-                1
-              )
-            );
-          }}
-          onOpenMonth={(monthIndex) => {
-            setCalendarMonth(
-              new Date(
-                calendarMonth.getFullYear(),
-                monthIndex,
-                1
-              )
-            );
-            setViewMode("month");
-          }}
-          onEdit={openEdit}
-        />
-      )}
+      </section>
     </div>
   );
 }
@@ -974,617 +801,6 @@ function Field({
       {children}
     </label>
   );
-}
-
-function CalendarView({
-  month,
-  absences,
-  absenceTypes,
-  loading,
-  onPreviousMonth,
-  onNextMonth,
-  onToday,
-  onEdit,
-}: {
-  month: Date;
-  absences: Absence[];
-  absenceTypes: AbsenceType[];
-  loading: boolean;
-  onPreviousMonth: () => void;
-  onNextMonth: () => void;
-  onToday: () => void;
-  onEdit: (absence: Absence) => void;
-}) {
-  const days = buildCalendarDays(month);
-  const weekDays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-  const monthAbsences = absences.filter((absence) =>
-    absenceTouchesMonth(absence, month)
-  );
-
-  return (
-    <section className="overflow-hidden rounded-xl bg-white shadow-sm">
-      <CalendarHeader
-        title={month.toLocaleDateString("pt-PT", {
-          month: "long",
-          year: "numeric",
-        })}
-        onPrevious={onPreviousMonth}
-        onNext={onNextMonth}
-        onToday={onToday}
-      />
-
-      {loading ? (
-        <CalendarLoading />
-      ) : (
-        <div className="overflow-x-auto">
-          <div className="min-w-[900px]">
-            <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
-              {weekDays.map((day) => (
-                <div
-                  key={day}
-                  className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500"
-                >
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-7">
-              {days.map((day) => {
-                const dayAbsences = monthAbsences.filter(
-                  (absence) =>
-                    absenceTouchesDay(absence, day.date)
-                );
-
-                const today = isSameDay(
-                  day.date,
-                  new Date()
-                );
-
-                return (
-                  <div
-                    key={day.date.toISOString()}
-                    className={`min-h-32 border-b border-r border-slate-200 p-2 ${
-                      day.inCurrentMonth
-                        ? "bg-white"
-                        : "bg-slate-50"
-                    }`}
-                  >
-                    <div className="mb-2 flex justify-end">
-                      <span
-                        className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium ${
-                          today
-                            ? "bg-blue-600 text-white"
-                            : day.inCurrentMonth
-                              ? "text-slate-700"
-                              : "text-slate-400"
-                        }`}
-                      >
-                        {day.date.getDate()}
-                      </span>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      {dayAbsences
-                        .slice(0, 4)
-                        .map((absence) => (
-                          <button
-                            key={absence.id}
-                            type="button"
-                            onClick={() =>
-                              onEdit(absence)
-                            }
-                            title={`${absence.employeeName} — ${absence.absenceTypeName} — ${statusLabel(absence.status)}`}
-                            className="block w-full truncate rounded-md border px-2 py-1.5 text-left text-xs font-medium transition hover:brightness-95"
-                            style={absenceColorStyle(
-                              absence.absenceTypeColor
-                            )}
-                          >
-                            <span className="block truncate">
-                              {absence.employeeName}
-                            </span>
-
-                            <span className="block truncate text-[11px] font-normal opacity-80">
-                              {absence.absenceTypeName}
-                            </span>
-                          </button>
-                        ))}
-
-                      {dayAbsences.length > 4 && (
-                        <div className="px-1 text-xs font-medium text-slate-500">
-                          + {dayAbsences.length - 4} mais
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <TypeLegend
-        absenceTypes={absenceTypes}
-        absences={monthAbsences}
-      />
-    </section>
-  );
-}
-
-function YearCalendarView({
-  year,
-  absences,
-  absenceTypes,
-  loading,
-  onPreviousYear,
-  onNextYear,
-  onToday,
-  onOpenMonth,
-  onEdit,
-}: {
-  year: number;
-  absences: Absence[];
-  absenceTypes: AbsenceType[];
-  loading: boolean;
-  onPreviousYear: () => void;
-  onNextYear: () => void;
-  onToday: () => void;
-  onOpenMonth: (monthIndex: number) => void;
-  onEdit: (absence: Absence) => void;
-}) {
-  return (
-    <section className="overflow-hidden rounded-xl bg-white shadow-sm">
-      <CalendarHeader
-        title={String(year)}
-        onPrevious={onPreviousYear}
-        onNext={onNextYear}
-        onToday={onToday}
-      />
-
-      {loading ? (
-        <CalendarLoading />
-      ) : (
-        <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
-          {Array.from(
-            { length: 12 },
-            (_, monthIndex) => (
-              <YearMonth
-                key={monthIndex}
-                year={year}
-                monthIndex={monthIndex}
-                absences={absences}
-                onOpen={() =>
-                  onOpenMonth(monthIndex)
-                }
-                onEdit={onEdit}
-              />
-            )
-          )}
-        </div>
-      )}
-
-      <TypeLegend
-        absenceTypes={absenceTypes}
-        absences={absences}
-      />
-    </section>
-  );
-}
-
-function YearMonth({
-  year,
-  monthIndex,
-  absences,
-  onOpen,
-  onEdit,
-}: {
-  year: number;
-  monthIndex: number;
-  absences: Absence[];
-  onOpen: () => void;
-  onEdit: (absence: Absence) => void;
-}) {
-  const month = new Date(
-    year,
-    monthIndex,
-    1
-  );
-
-  const days =
-    buildCompactMonthDays(month);
-
-  const weekDays = [
-    "S",
-    "T",
-    "Q",
-    "Q",
-    "S",
-    "S",
-    "D",
-  ];
-
-  return (
-    <div className="rounded-xl border border-slate-200 p-3">
-      <button
-        type="button"
-        onClick={onOpen}
-        className="mb-3 w-full text-left text-sm font-semibold capitalize text-slate-800 hover:text-blue-600"
-      >
-        {month.toLocaleDateString(
-          "pt-PT",
-          { month: "long" }
-        )}
-      </button>
-
-      <div className="grid grid-cols-7 gap-1">
-        {weekDays.map((day, index) => (
-          <div
-            key={`${day}-${index}`}
-            className="pb-1 text-center text-[10px] font-semibold text-slate-400"
-          >
-            {day}
-          </div>
-        ))}
-
-        {days.map((item, index) => {
-          if (!item) {
-            return (
-              <div
-                key={`empty-${index}`}
-                className="h-9"
-              />
-            );
-          }
-
-          const date = new Date(
-            year,
-            monthIndex,
-            item
-          );
-
-          const dayAbsences =
-            absences.filter((absence) =>
-              absenceTouchesDay(
-                absence,
-                date
-              )
-            );
-
-          const today = isSameDay(
-            date,
-            new Date()
-          );
-
-          return (
-            <div
-              key={item}
-              className={`relative flex h-9 items-center justify-center rounded-md text-xs ${
-                today
-                  ? "ring-2 ring-blue-500"
-                  : ""
-              }`}
-            >
-              <span>{item}</span>
-
-              {dayAbsences.length > 0 && (
-                <div className="absolute bottom-0.5 left-1/2 flex max-w-[90%] -translate-x-1/2 gap-0.5">
-                  {dayAbsences
-                    .slice(0, 3)
-                    .map((absence) => (
-                      <button
-                        key={absence.id}
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onEdit(absence);
-                        }}
-                        title={`${absence.employeeName} — ${absence.absenceTypeName} — ${statusLabel(absence.status)}`}
-                        className="h-1.5 w-1.5 rounded-full"
-                        style={{
-                          backgroundColor:
-                            validHex(
-                              absence.absenceTypeColor
-                            ),
-                        }}
-                      />
-                    ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function CalendarHeader({
-  title,
-  onPrevious,
-  onNext,
-  onToday,
-}: {
-  title: string;
-  onPrevious: () => void;
-  onNext: () => void;
-  onToday: () => void;
-}) {
-  return (
-    <div className="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h3 className="text-lg font-semibold capitalize text-slate-900">
-          {title}
-        </h3>
-
-        <p className="mt-1 text-sm text-slate-500">
-          As cores representam o tipo de ausência.
-        </p>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onPrevious}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          ←
-        </button>
-
-        <button
-          type="button"
-          onClick={onToday}
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          Hoje
-        </button>
-
-        <button
-          type="button"
-          onClick={onNext}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          →
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function CalendarLoading() {
-  return (
-    <div className="p-12 text-center text-sm text-slate-500">
-      A carregar calendário...
-    </div>
-  );
-}
-
-function TypeLegend({
-  absenceTypes,
-  absences,
-}: {
-  absenceTypes: AbsenceType[];
-  absences: Absence[];
-}) {
-  const usedIds = new Set(
-    absences.map(
-      (absence) => absence.absenceTypeId
-    )
-  );
-
-  const types = absenceTypes.filter(
-    (type) => usedIds.has(type.id)
-  );
-
-  if (types.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="flex flex-wrap gap-3 border-t border-slate-100 px-5 py-4">
-      {types.map((type) => (
-        <span
-          key={type.id}
-          className="inline-flex items-center gap-2 text-xs font-medium text-slate-600"
-        >
-          <span
-            className="h-3 w-3 rounded-full"
-            style={{
-              backgroundColor:
-                validHex(type.color),
-            }}
-          />
-
-          {type.name}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function buildCalendarDays(
-  month: Date
-) {
-  const firstDay = new Date(
-    month.getFullYear(),
-    month.getMonth(),
-    1
-  );
-
-  const mondayOffset =
-    (firstDay.getDay() + 6) % 7;
-
-  const start = new Date(
-    firstDay.getFullYear(),
-    firstDay.getMonth(),
-    firstDay.getDate() -
-      mondayOffset
-  );
-
-  return Array.from(
-    { length: 42 },
-    (_, index) => {
-      const date = new Date(
-        start.getFullYear(),
-        start.getMonth(),
-        start.getDate() + index
-      );
-
-      return {
-        date,
-        inCurrentMonth:
-          date.getMonth() ===
-          month.getMonth(),
-      };
-    }
-  );
-}
-
-function buildCompactMonthDays(
-  month: Date
-): Array<number | null> {
-  const first = new Date(
-    month.getFullYear(),
-    month.getMonth(),
-    1
-  );
-
-  const offset =
-    (first.getDay() + 6) % 7;
-
-  const count = new Date(
-    month.getFullYear(),
-    month.getMonth() + 1,
-    0
-  ).getDate();
-
-  return [
-    ...Array.from(
-      { length: offset },
-      () => null
-    ),
-    ...Array.from(
-      { length: count },
-      (_, index) => index + 1
-    ),
-  ];
-}
-
-function absenceTouchesMonth(
-  absence: Absence,
-  month: Date
-) {
-  const start = new Date(
-    month.getFullYear(),
-    month.getMonth(),
-    1
-  );
-
-  const end = new Date(
-    month.getFullYear(),
-    month.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-    999
-  );
-
-  return (
-    new Date(
-      absence.startDateTime
-    ) <= end &&
-    new Date(
-      absence.endDateTime
-    ) >= start
-  );
-}
-
-function absenceTouchesDay(
-  absence: Absence,
-  day: Date
-) {
-  const dayStart = new Date(
-    day.getFullYear(),
-    day.getMonth(),
-    day.getDate(),
-    0,
-    0,
-    0,
-    0
-  );
-
-  const dayEnd = new Date(
-    day.getFullYear(),
-    day.getMonth(),
-    day.getDate(),
-    23,
-    59,
-    59,
-    999
-  );
-
-  return (
-    new Date(
-      absence.startDateTime
-    ) <= dayEnd &&
-    new Date(
-      absence.endDateTime
-    ) >= dayStart
-  );
-}
-
-function isSameDay(
-  a: Date,
-  b: Date
-) {
-  return (
-    a.getFullYear() ===
-      b.getFullYear() &&
-    a.getMonth() ===
-      b.getMonth() &&
-    a.getDate() ===
-      b.getDate()
-  );
-}
-
-function validHex(
-  color?: string
-) {
-  return color &&
-    /^#[0-9A-Fa-f]{6}$/.test(
-      color
-    )
-    ? color
-    : "#3B82F6";
-}
-
-function absenceColorStyle(
-  color?: string
-): React.CSSProperties {
-  const hex = validHex(color);
-
-  return {
-    backgroundColor: `${hex}20`,
-    borderColor: `${hex}55`,
-    color: hex,
-  };
-}
-
-function statusLabel(
-  status: string
-) {
-  const labels: Record<
-    string,
-    string
-  > = {
-    Pending: "Pendente",
-    Approved: "Aprovada",
-    Rejected: "Rejeitada",
-    Cancelled: "Cancelada",
-  };
-
-  return labels[status] ?? status;
 }
 
 function getStatusValue(status: string) {

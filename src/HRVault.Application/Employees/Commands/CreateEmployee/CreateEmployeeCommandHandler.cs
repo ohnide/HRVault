@@ -12,6 +12,8 @@ public class CreateEmployeeCommandHandler
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IDepartmentRepository _departmentRepository;
     private readonly IPositionRepository _positionRepository;
+    private readonly IVacationBalanceRepository _vacationBalanceRepository;
+    private readonly IVacationEntitlementCalculator _vacationEntitlementCalculator;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUser;
@@ -20,6 +22,8 @@ public class CreateEmployeeCommandHandler
         IEmployeeRepository employeeRepository,
         IDepartmentRepository departmentRepository,
         IPositionRepository positionRepository,
+        IVacationBalanceRepository vacationBalanceRepository,
+        IVacationEntitlementCalculator vacationEntitlementCalculator,
         IUnitOfWork unitOfWork,
         IMapper mapper,
         ICurrentUserService currentUser)
@@ -27,6 +31,8 @@ public class CreateEmployeeCommandHandler
         _employeeRepository = employeeRepository;
         _departmentRepository = departmentRepository;
         _positionRepository = positionRepository;
+        _vacationBalanceRepository = vacationBalanceRepository;
+        _vacationEntitlementCalculator = vacationEntitlementCalculator;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _currentUser = currentUser;
@@ -91,6 +97,28 @@ public class CreateEmployeeCommandHandler
 
         await _employeeRepository.AddAsync(
             employee,
+            cancellationToken);
+
+        var vacationYear = request.HireDate.Year;
+
+        var entitledDays =
+            _vacationEntitlementCalculator.Calculate(
+                request.HireDate,
+                vacationYear);
+
+        var vacationBalance = new VacationBalance
+        {
+            CompanyId = companyId,
+            EmployeeId = employee.Id,
+            Year = vacationYear,
+            EntitledDays = entitledDays,
+            CarriedOverDays = 0,
+            AdjustmentDays = 0,
+            Notes = "Saldo criado automaticamente na admissão."
+        };
+
+        await _vacationBalanceRepository.AddAsync(
+            vacationBalance,
             cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(

@@ -1,3 +1,4 @@
+using HRVault.Domain.Enums;
 using MediatR;
 
 namespace HRVault.Application.Employees.Commands.UpdateEmployee;
@@ -25,6 +26,8 @@ public class UpdateEmployeeCommand : IRequest<Guid>
     public DateOnly HireDate { get; set; }
 
     public DateOnly? TerminationDate { get; set; }
+
+    public ContractType ContractType { get; set; }
 
     public int Status { get; set; }
 }

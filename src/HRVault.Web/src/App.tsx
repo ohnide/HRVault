@@ -2,7 +2,6 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 
 
-
 import {
   Navigate,
   Route,
@@ -38,6 +37,8 @@ import DocumentTypes from "./pages/DocumentTypes";
 import AbsenceTypes from "./pages/AbsenceTypes";
 import Absences from "./pages/Absences";
 
+import Vacations from "./pages/Vacations";
+import Calendar from "./pages/Calendar";
 
 
 function Login() {
@@ -287,7 +288,17 @@ function App() {
 		<Route
 		  path="/positions"
 		  element={<Positions />}
-		/>	
+		/>
+
+		<Route
+		  path="/vacations"
+		  element={<Vacations />}
+		/>
+		
+		<Route
+		  path="/calendar"
+		  element={<Calendar />}
+		/>
 	
       </Route>
 

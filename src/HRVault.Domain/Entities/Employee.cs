@@ -34,6 +34,9 @@ public class Employee : SoftDeleteEntity
     public DateOnly HireDate { get; set; }
 
     public DateOnly? TerminationDate { get; set; }
+	
+	// Contrato
+	public ContractType ContractType { get; set; } = ContractType.Permanent;
 
     // Estado
     public EmployeeStatus Status { get; set; } = EmployeeStatus.Active;
@@ -51,4 +54,5 @@ public class Employee : SoftDeleteEntity
 	
 	public ICollection<EmployeeAbsence> Absences { get; set; }
 		= new List<EmployeeAbsence>();
+		
 }

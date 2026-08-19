@@ -108,6 +108,10 @@ public static class DependencyInjection
 			IDocumentRepository,
 			DocumentRepository>();
 			
+		services.AddScoped<
+			IVacationEntitlementCalculator,
+			VacationEntitlementCalculator>();
+			
 		services.Configure<MinioOptions>(
 			configuration.GetSection(
 				MinioOptions.SectionName));

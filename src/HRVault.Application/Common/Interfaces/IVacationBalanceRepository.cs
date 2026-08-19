@@ -13,4 +13,8 @@ public interface IVacationBalanceRepository
     Task AddAsync(
         VacationBalance balance,
         CancellationToken cancellationToken = default);
+
+    Task UpdateAsync(
+        VacationBalance balance,
+        CancellationToken cancellationToken = default);
 }

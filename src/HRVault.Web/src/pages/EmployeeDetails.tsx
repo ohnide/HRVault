@@ -15,6 +15,7 @@ interface Employee {
   mobilePhone?: string | null;
   hireDate: string;
   terminationDate?: string | null;
+  contractType: number;
   status: number;
 }
 
@@ -121,8 +122,22 @@ interface EmployeeDetailsData {
   emergencyContact?: EmployeeEmergencyContact | null;
 }
 
+interface VacationBalance {
+  id: string;
+  employeeId: string;
+  year: number;
+  entitledDays: number;
+  carriedOverDays: number;
+  adjustmentDays: number;
+  notes?: string | null;
+  totalDays: number;
+  approvedDays: number;
+  remainingDays: number;
+}
+
 type EmployeeTab =
   | "overview"
+  | "vacations"
   | "documents";
 
 const tabs: Array<{
@@ -132,6 +147,10 @@ const tabs: Array<{
   {
     key: "overview",
     label: "Visão Geral",
+  },
+  {
+    key: "vacations",
+    label: "Férias",
   },
   {
     key: "documents",
@@ -162,6 +181,30 @@ export default function EmployeeDetails() {
     useState(true);
 
   const [error, setError] =
+    useState("");
+
+  const [vacationYear, setVacationYear] =
+    useState(new Date().getFullYear());
+
+  const [vacationBalance, setVacationBalance] =
+    useState<VacationBalance | null>(null);
+
+  const [vacationLoading, setVacationLoading] =
+    useState(false);
+
+  const [vacationSaving, setVacationSaving] =
+    useState(false);
+
+  const [vacationError, setVacationError] =
+    useState("");
+
+  const [vacationSuccess, setVacationSuccess] =
+    useState("");
+
+  const [adjustmentDays, setAdjustmentDays] =
+    useState("0");
+
+  const [vacationNotes, setVacationNotes] =
     useState("");
 
   const [documents, setDocuments] =
@@ -214,6 +257,12 @@ export default function EmployeeDetails() {
   }, [id]);
 
   useEffect(() => {
+    if (activeTab === "vacations" && id) {
+      void loadVacationBalance(id, vacationYear);
+    }
+  }, [activeTab, id, vacationYear]);
+
+  useEffect(() => {
     if (
       activeTab === "documents" &&
       id &&
@@ -226,6 +275,101 @@ export default function EmployeeDetails() {
     id,
     documentsLoaded,
   ]);
+
+  async function loadVacationBalance(
+    employeeId: string,
+    year: number
+  ) {
+    try {
+      setVacationLoading(true);
+      setVacationError("");
+      setVacationSuccess("");
+
+      const response = await api.get<VacationBalance>(
+        `/VacationBalances/${employeeId}/${year}`
+      );
+
+      setVacationBalance(response.data);
+      setAdjustmentDays(
+        String(response.data.adjustmentDays ?? 0)
+      );
+      setVacationNotes(response.data.notes ?? "");
+    } catch (error: any) {
+      console.error(
+        "Erro ao carregar saldo de férias:",
+        error
+      );
+
+      setVacationBalance(null);
+
+      if (error.response?.status === 404) {
+        setVacationError(
+          `Não existe saldo de férias para ${year}.`
+        );
+      } else {
+        setVacationError(
+          error.response?.data?.message ??
+            "Não foi possível carregar o saldo de férias."
+        );
+      }
+    } finally {
+      setVacationLoading(false);
+    }
+  }
+
+  async function saveVacationAdjustment(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    if (!id || !vacationBalance) {
+      return;
+    }
+
+    const parsedAdjustment = Number(
+      adjustmentDays.replace(",", ".")
+    );
+
+    if (!Number.isFinite(parsedAdjustment)) {
+      setVacationError(
+        "Indique um ajuste de férias válido."
+      );
+      return;
+    }
+
+    try {
+      setVacationSaving(true);
+      setVacationError("");
+      setVacationSuccess("");
+
+      await api.put(
+        `/VacationBalances/${id}/${vacationYear}`,
+        {
+          employeeId: id,
+          year: vacationYear,
+          adjustmentDays: parsedAdjustment,
+          notes: vacationNotes.trim() || null,
+        }
+      );
+
+      await loadVacationBalance(id, vacationYear);
+      setVacationSuccess(
+        "Ajuste de férias guardado com sucesso."
+      );
+    } catch (error: any) {
+      console.error(
+        "Erro ao guardar ajuste de férias:",
+        error
+      );
+
+      setVacationError(
+        error.response?.data?.message ??
+          "Não foi possível guardar o ajuste de férias."
+      );
+    } finally {
+      setVacationSaving(false);
+    }
+  }
 
   async function loadDocuments(
     employeeId: string
@@ -582,6 +726,23 @@ export default function EmployeeDetails() {
           className:
             "bg-slate-100 text-slate-600",
         };
+    }
+  }
+
+  function getContractTypeName(
+    value?: number | null
+  ) {
+    switch (value) {
+      case 1:
+        return "Sem termo";
+      case 2:
+        return "Termo certo";
+      case 3:
+        return "Termo incerto";
+      default:
+        return value == null
+          ? "-"
+          : `Tipo ${value}`;
     }
   }
 
@@ -1083,6 +1244,13 @@ function getContactTypeName(
               />
 
               <InfoField
+                label="Tipo de contrato"
+                value={getContractTypeName(
+                  employee.contractType
+                )}
+              />
+
+              <InfoField
                 label="Email profissional"
                 value={
                   employee.workEmail ?? "-"
@@ -1383,6 +1551,151 @@ function getContactTypeName(
               </div>
             )}
           </section>
+        </div>
+      )}
+
+      {/* FÉRIAS */}
+      {activeTab === "vacations" && (
+        <div className="space-y-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 className="text-xl font-semibold text-slate-900">
+                Férias do funcionário
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Consulte o saldo anual e registe ajustes atribuídos pela empresa.
+              </p>
+            </div>
+
+            <label className="block w-full sm:w-40">
+              <span className="text-sm font-medium text-slate-700">
+                Ano
+              </span>
+              <input
+                type="number"
+                min={2000}
+                max={2100}
+                value={vacationYear}
+                onChange={(event) =>
+                  setVacationYear(Number(event.target.value))
+                }
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500"
+              />
+            </label>
+          </div>
+
+          {vacationError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {vacationError}
+            </div>
+          )}
+
+          {vacationSuccess && (
+            <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+              {vacationSuccess}
+            </div>
+          )}
+
+          {vacationLoading ? (
+            <div className="rounded-xl bg-white p-8 text-center shadow-sm">
+              <p className="text-sm text-slate-500">
+                A carregar saldo de férias...
+              </p>
+            </div>
+          ) : vacationBalance ? (
+            <>
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+                <VacationStatCard
+                  label="Direito calculado"
+                  value={vacationBalance.entitledDays}
+                />
+                <VacationStatCard
+                  label="Transitado"
+                  value={vacationBalance.carriedOverDays}
+                />
+                <VacationStatCard
+                  label="Ajuste empresa"
+                  value={vacationBalance.adjustmentDays}
+                  signed
+                />
+                <VacationStatCard
+                  label="Total"
+                  value={vacationBalance.totalDays}
+                />
+                <VacationStatCard
+                  label="Aprovados"
+                  value={vacationBalance.approvedDays}
+                />
+                <VacationStatCard
+                  label="Disponíveis"
+                  value={vacationBalance.remainingDays}
+                />
+              </div>
+
+              <section className="rounded-xl bg-white p-6 shadow-sm">
+                <div className="mb-5">
+                  <h4 className="text-lg font-semibold text-slate-900">
+                    Ajuste manual
+                  </h4>
+                  <p className="mt-1 text-sm text-slate-500">
+                    O direito calculado não é alterado. Utilize este campo apenas para dias adicionais ou correções autorizadas pela empresa.
+                  </p>
+                </div>
+
+                <form
+                  onSubmit={saveVacationAdjustment}
+                  className="space-y-5"
+                >
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    <label className="block">
+                      <span className="text-sm font-medium text-slate-700">
+                        Ajuste empresa
+                      </span>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={adjustmentDays}
+                        onChange={(event) =>
+                          setAdjustmentDays(event.target.value)
+                        }
+                        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">
+                        Pode usar valores positivos ou negativos.
+                      </p>
+                    </label>
+
+                    <label className="block">
+                      <span className="text-sm font-medium text-slate-700">
+                        Motivo / notas
+                      </span>
+                      <textarea
+                        rows={3}
+                        value={vacationNotes}
+                        onChange={(event) =>
+                          setVacationNotes(event.target.value)
+                        }
+                        placeholder="Ex.: 2 dias adicionais atribuídos pela empresa"
+                        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-blue-500"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={vacationSaving}
+                      className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {vacationSaving
+                        ? "A guardar..."
+                        : "Guardar ajuste"}
+                    </button>
+                  </div>
+                </form>
+              </section>
+            </>
+          ) : null}
         </div>
       )}
 
@@ -1851,6 +2164,37 @@ function StatCard({
 
       <p className="mt-2 text-base font-semibold text-slate-800">
         {value}
+      </p>
+    </div>
+  );
+}
+
+interface VacationStatCardProps {
+  label: string;
+  value: number;
+  signed?: boolean;
+}
+
+function VacationStatCard({
+  label,
+  value,
+  signed = false,
+}: VacationStatCardProps) {
+  const displayValue =
+    signed && value > 0
+      ? `+${value}`
+      : String(value);
+
+  return (
+    <div className="rounded-xl bg-white p-5 shadow-sm">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-bold text-slate-900">
+        {displayValue}
+        <span className="ml-1 text-sm font-medium text-slate-400">
+          dias
+        </span>
       </p>
     </div>
   );

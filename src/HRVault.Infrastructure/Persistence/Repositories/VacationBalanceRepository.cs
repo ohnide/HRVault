@@ -38,4 +38,13 @@ public class VacationBalanceRepository
             balance,
             cancellationToken);
     }
+	
+	public Task UpdateAsync(
+		VacationBalance balance,
+		CancellationToken cancellationToken = default)
+	{
+		_context.VacationBalances.Update(balance);
+
+		return Task.CompletedTask;
+	}
 }
