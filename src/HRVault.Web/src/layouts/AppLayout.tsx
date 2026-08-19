@@ -96,9 +96,9 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-100">
       {/* Sidebar */}
-      <aside className="flex w-64 flex-col bg-slate-900 text-white">
+      <aside className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col bg-slate-900 text-white">
         {/* Logo */}
         <div className="border-b border-slate-800 px-6 py-5">
           <h1 className="text-2xl font-bold">
@@ -234,9 +234,9 @@ export default function AppLayout() {
       </aside>
 
       {/* Main */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="ml-64 flex min-h-screen min-w-0 flex-col">
         {/* Header */}
-        <header className="flex h-16 items-center justify-between border-b bg-white px-8">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-white px-8">
           <div>
             <span className="text-sm text-slate-500">
               Sistema de Recursos Humanos

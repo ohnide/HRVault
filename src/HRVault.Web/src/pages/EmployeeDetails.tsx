@@ -135,6 +135,35 @@ interface VacationBalance {
   remainingDays: number;
 }
 
+interface VacationRequestHistory {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  startDate: string;
+  endDate: string;
+  days: number;
+  status: string;
+  notes?: string | null;
+}
+
+interface EmployeeAbsenceHistory {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  absenceTypeId: string;
+  absenceTypeName: string;
+  startDateTime: string;
+  endDateTime: string;
+  status: string;
+  reason?: string | null;
+  notes?: string | null;
+  absenceTypeColor: string;
+}
+
+interface PagedResult<T> {
+  items: T[];
+}
+
 type EmployeeTab =
   | "overview"
   | "vacations"
@@ -207,6 +236,15 @@ export default function EmployeeDetails() {
   const [vacationNotes, setVacationNotes] =
     useState("");
 
+  const [vacationRequests, setVacationRequests] =
+    useState<VacationRequestHistory[]>([]);
+  const [employeeAbsences, setEmployeeAbsences] =
+    useState<EmployeeAbsenceHistory[]>([]);
+  const [historyLoading, setHistoryLoading] =
+    useState(false);
+  const [historyError, setHistoryError] =
+    useState("");
+
   const [documents, setDocuments] =
     useState<EmployeeDocument[]>([]);
 
@@ -259,6 +297,7 @@ export default function EmployeeDetails() {
   useEffect(() => {
     if (activeTab === "vacations" && id) {
       void loadVacationBalance(id, vacationYear);
+      void loadVacationHistory(id, vacationYear);
     }
   }, [activeTab, id, vacationYear]);
 
@@ -314,6 +353,63 @@ export default function EmployeeDetails() {
       }
     } finally {
       setVacationLoading(false);
+    }
+  }
+
+  async function loadVacationHistory(
+    employeeId: string,
+    year: number
+  ) {
+    try {
+      setHistoryLoading(true);
+      setHistoryError("");
+
+      const dateFrom = `${year}-01-01T00:00:00.000Z`;
+      const dateTo = `${year}-12-31T23:59:59.999Z`;
+
+      const [vacationResponse, absenceResponse] =
+        await Promise.all([
+          api.get<PagedResult<VacationRequestHistory>>(
+            "/VacationRequests/search",
+            {
+              params: {
+                employeeId,
+                year,
+                page: 1,
+                pageSize: 500,
+              },
+            }
+          ),
+          api.get<PagedResult<EmployeeAbsenceHistory>>(
+            "/Absences/search",
+            {
+              params: {
+                employeeId,
+                dateFrom,
+                dateTo,
+                page: 1,
+                pageSize: 500,
+              },
+            }
+          ),
+        ]);
+
+      setVacationRequests(vacationResponse.data.items ?? []);
+      setEmployeeAbsences(absenceResponse.data.items ?? []);
+    } catch (error: any) {
+      console.error(
+        "Erro ao carregar histórico de férias e ausências:",
+        error
+      );
+
+      setVacationRequests([]);
+      setEmployeeAbsences([]);
+      setHistoryError(
+        error.response?.data?.message ??
+          "Não foi possível carregar o histórico do ano."
+      );
+    } finally {
+      setHistoryLoading(false);
     }
   }
 
@@ -987,6 +1083,71 @@ function getContactTypeName(
       .filter(Boolean)
       .join(", ");
   }
+
+  function formatHistoryDate(value: string) {
+    return new Intl.DateTimeFormat("pt-PT").format(
+      new Date(value)
+    );
+  }
+
+  function formatAbsenceDuration(
+    start: string,
+    end: string
+  ) {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const milliseconds =
+      endDate.getTime() - startDate.getTime();
+
+    if (milliseconds < 24 * 60 * 60 * 1000) {
+      const hours = milliseconds / (60 * 60 * 1000);
+      return `${hours.toLocaleString("pt-PT", {
+        maximumFractionDigits: 2,
+      })} h`;
+    }
+
+    const days =
+      Math.floor(milliseconds / (24 * 60 * 60 * 1000)) + 1;
+    return `${days} ${days === 1 ? "dia" : "dias"}`;
+  }
+
+  const vacationHistoryRows = vacationRequests.map(
+    (vacation) => ({
+      id: `vacation-${vacation.id}`,
+      start: vacation.startDate,
+      end: vacation.endDate,
+      type: "Férias",
+      duration: `${vacation.days.toLocaleString("pt-PT")} ${
+        vacation.days === 1 ? "dia" : "dias"
+      }`,
+      status: vacation.status,
+      notes: vacation.notes ?? "",
+    })
+  );
+
+  const absenceHistoryRows = employeeAbsences.map(
+    (absence) => ({
+      id: `absence-${absence.id}`,
+      start: absence.startDateTime,
+      end: absence.endDateTime,
+      type: absence.absenceTypeName || "Ausência",
+      duration: formatAbsenceDuration(
+        absence.startDateTime,
+        absence.endDateTime
+      ),
+      status: absence.status,
+      notes: absence.reason || absence.notes || "",
+    })
+  );
+
+  const vacationAndAbsenceHistory = [
+    ...vacationHistoryRows,
+    ...absenceHistoryRows,
+  ].sort(
+    (a, b) =>
+      new Date(b.start).getTime() -
+      new Date(a.start).getTime()
+  );
 
   if (loading) {
     return (
@@ -1693,6 +1854,92 @@ function getContactTypeName(
                     </button>
                   </div>
                 </form>
+              </section>
+
+              <section className="rounded-xl bg-white p-6 shadow-sm">
+                <div>
+                  <h4 className="text-lg font-semibold text-slate-900">
+                    Histórico de férias e ausências — {vacationYear}
+                  </h4>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Registos de férias e ausências deste funcionário no ano selecionado.
+                  </p>
+                </div>
+
+                {historyError && (
+                  <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    {historyError}
+                  </div>
+                )}
+
+                {historyLoading ? (
+                  <div className="py-8 text-center text-sm text-slate-500">
+                    A carregar histórico...
+                  </div>
+                ) : vacationAndAbsenceHistory.length === 0 ? (
+                  <div className="mt-4 rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+                    Não existem férias nem ausências registadas em {vacationYear}.
+                  </div>
+                ) : (
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                            Início
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                            Fim
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                            Tipo
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                            Duração
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                            Estado
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                            Observações
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {vacationAndAbsenceHistory.map((item) => (
+                          <tr key={item.id} className="hover:bg-slate-50">
+                            <td className="whitespace-nowrap px-4 py-3 text-slate-700">
+                              {formatHistoryDate(item.start)}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-slate-700">
+                              {formatHistoryDate(item.end)}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3">
+                              <span
+                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                  item.type === "Férias"
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "bg-amber-100 text-amber-700"
+                                }`}
+                              >
+                                {item.type}
+                              </span>
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-slate-700">
+                              {item.duration}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-slate-700">
+                              {item.status}
+                            </td>
+                            <td className="px-4 py-3 text-slate-600">
+                              {item.notes || "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </section>
             </>
           ) : null}
