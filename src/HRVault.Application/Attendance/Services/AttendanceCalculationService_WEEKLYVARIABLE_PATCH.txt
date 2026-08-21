@@ -1,0 +1,28 @@
+IMPORTANTE - pequena correção recomendada no AttendanceCalculationService
+
+Para WeeklyVariable, um dia marcado no modelo é um DIA POSSÍVEL,
+não necessariamente um dia obrigatório.
+
+Por isso, no bloco:
+
+if (relevantPunches.Count == 0)
+{
+    ...
+}
+
+adicionar ANTES da lógica atual:
+
+if (schedule.Type == WorkScheduleType.WeeklyVariable)
+{
+    result.Status = AttendanceDayStatus.NonWorkingDay;
+    result.ExpectedTime = TimeSpan.Zero;
+    result.Balance = TimeSpan.Zero;
+    return result;
+}
+
+Resultado:
+- Semana variável + sem picagens nesse dia possível:
+  não gera saldo negativo diário.
+- Se existirem picagens:
+  RequiredDailyTime é usado normalmente.
+- O cumprimento dos X dias obrigatórios será avaliado no cálculo semanal.

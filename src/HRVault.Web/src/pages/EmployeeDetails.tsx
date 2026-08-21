@@ -99,6 +99,25 @@ interface EmployeeDocumentType {
   expirationWarningDays?: number | null;
 }
 
+interface WorkSchedule {
+  id: string;
+  name: string;
+  type: number;
+  typeName?: string;
+  isActive: boolean;
+}
+
+interface EmployeeWorkSchedule {
+  id: string;
+  employeeId: string;
+  workScheduleId: string;
+  workScheduleName: string;
+  workScheduleType: string;
+  startDate: string;
+  endDate?: string | null;
+  isCurrent: boolean;
+}
+
 interface EmployeeDetailsData {
   id: string;
   companyId: string;
@@ -166,6 +185,7 @@ interface PagedResult<T> {
 
 type EmployeeTab =
   | "overview"
+  | "schedule"
   | "vacations"
   | "documents";
 
@@ -176,6 +196,10 @@ const tabs: Array<{
   {
     key: "overview",
     label: "Visão Geral",
+  },
+  {
+    key: "schedule",
+    label: "Horário",
   },
   {
     key: "vacations",
@@ -210,6 +234,33 @@ export default function EmployeeDetails() {
     useState(true);
 
   const [error, setError] =
+    useState("");
+
+  const [workSchedules, setWorkSchedules] =
+    useState<WorkSchedule[]>([]);
+
+  const [employeeWorkSchedules, setEmployeeWorkSchedules] =
+    useState<EmployeeWorkSchedule[]>([]);
+
+  const [scheduleLoading, setScheduleLoading] =
+    useState(false);
+
+  const [scheduleSaving, setScheduleSaving] =
+    useState(false);
+
+  const [scheduleError, setScheduleError] =
+    useState("");
+
+  const [scheduleSuccess, setScheduleSuccess] =
+    useState("");
+
+  const [showScheduleForm, setShowScheduleForm] =
+    useState(false);
+
+  const [selectedWorkScheduleId, setSelectedWorkScheduleId] =
+    useState("");
+
+  const [scheduleStartDate, setScheduleStartDate] =
     useState("");
 
   const [vacationYear, setVacationYear] =
@@ -302,6 +353,12 @@ export default function EmployeeDetails() {
   }, [activeTab, id, vacationYear]);
 
   useEffect(() => {
+    if (activeTab === "schedule" && id) {
+      void loadWorkSchedules(id);
+    }
+  }, [activeTab, id]);
+
+  useEffect(() => {
     if (
       activeTab === "documents" &&
       id &&
@@ -314,6 +371,110 @@ export default function EmployeeDetails() {
     id,
     documentsLoaded,
   ]);
+
+
+  async function loadWorkSchedules(
+    employeeId: string
+  ) {
+    try {
+      setScheduleLoading(true);
+      setScheduleError("");
+      setScheduleSuccess("");
+
+      const [
+        schedulesResponse,
+        assignmentsResponse,
+      ] = await Promise.all([
+        api.get<WorkSchedule[]>("/WorkSchedules"),
+        api.get<EmployeeWorkSchedule[]>(
+          `/Employees/${employeeId}/work-schedules`
+        ),
+      ]);
+
+      setWorkSchedules(
+        (schedulesResponse.data ?? []).filter(
+          (schedule) => schedule.isActive
+        )
+      );
+
+      setEmployeeWorkSchedules(
+        assignmentsResponse.data ?? []
+      );
+    } catch (error: any) {
+      console.error(
+        "Erro ao carregar horários do funcionário:",
+        error
+      );
+
+      setScheduleError(
+        error.response?.data?.message ??
+          error.response?.data?.title ??
+          "Não foi possível carregar os horários do funcionário."
+      );
+    } finally {
+      setScheduleLoading(false);
+    }
+  }
+
+  async function assignWorkSchedule(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    if (!id) {
+      return;
+    }
+
+    if (!selectedWorkScheduleId) {
+      setScheduleError("Selecione um horário.");
+      return;
+    }
+
+    if (!scheduleStartDate) {
+      setScheduleError(
+        "Indique a data de início do horário."
+      );
+      return;
+    }
+
+    try {
+      setScheduleSaving(true);
+      setScheduleError("");
+      setScheduleSuccess("");
+
+      await api.post(
+        `/Employees/${id}/work-schedules`,
+        {
+          workScheduleId:
+            selectedWorkScheduleId,
+          startDate: scheduleStartDate,
+        }
+      );
+
+      setSelectedWorkScheduleId("");
+      setScheduleStartDate("");
+      setShowScheduleForm(false);
+
+      await loadWorkSchedules(id);
+
+      setScheduleSuccess(
+        "Horário atribuído com sucesso."
+      );
+    } catch (error: any) {
+      console.error(
+        "Erro ao atribuir horário:",
+        error
+      );
+
+      setScheduleError(
+        error.response?.data?.message ??
+          error.response?.data?.title ??
+          "Não foi possível atribuir o horário."
+      );
+    } finally {
+      setScheduleSaving(false);
+    }
+  }
 
   async function loadVacationBalance(
     employeeId: string,
@@ -825,6 +986,24 @@ export default function EmployeeDetails() {
     }
   }
 
+
+  function getWorkScheduleTypeName(
+    value?: string | null
+  ) {
+    switch (value) {
+      case "Fixed":
+        return "Fixo";
+      case "Flexible":
+        return "Livre";
+      case "WeeklyVariable":
+        return "Semana variável";
+      case "ScheduleExempt":
+        return "Isenção de horário";
+      default:
+        return value || "-";
+    }
+  }
+
   function getContractTypeName(
     value?: number | null
   ) {
@@ -1227,6 +1406,11 @@ function getContactTypeName(
         type.id ===
         selectedDocumentTypeId
     );
+
+  const currentWorkSchedule =
+    employeeWorkSchedules.find(
+      (assignment) => assignment.isCurrent
+    ) ?? null;
 
   return (
     <div className="space-y-6">
@@ -1716,7 +1900,265 @@ function getContactTypeName(
       )}
 
       {/* FÉRIAS */}
-      {activeTab === "vacations" && (
+      
+      {activeTab === "schedule" && (
+        <div className="space-y-6">
+          {scheduleError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {scheduleError}
+            </div>
+          )}
+
+          {scheduleSuccess && (
+            <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+              {scheduleSuccess}
+            </div>
+          )}
+
+          <section className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Horário atual
+                </h3>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Horário de trabalho atualmente atribuído ao funcionário.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowScheduleForm((current) => !current);
+                  setScheduleError("");
+                  setScheduleSuccess("");
+                }}
+                className="self-start rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                {showScheduleForm
+                  ? "Cancelar"
+                  : currentWorkSchedule
+                    ? "Alterar horário"
+                    : "Atribuir horário"}
+              </button>
+            </div>
+
+            {scheduleLoading ? (
+              <div className="mt-6 text-sm text-slate-500">
+                A carregar horários...
+              </div>
+            ) : currentWorkSchedule ? (
+              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+                <InfoCard
+                  label="Horário"
+                  value={currentWorkSchedule.workScheduleName}
+                />
+
+                <InfoCard
+                  label="Tipo"
+                  value={getWorkScheduleTypeName(
+                    currentWorkSchedule.workScheduleType
+                  )}
+                />
+
+                <InfoCard
+                  label="Início"
+                  value={formatDate(
+                    currentWorkSchedule.startDate
+                  )}
+                />
+
+                <InfoCard
+                  label="Fim"
+                  value={
+                    currentWorkSchedule.endDate
+                      ? formatDate(
+                          currentWorkSchedule.endDate
+                        )
+                      : "Atual"
+                  }
+                />
+              </div>
+            ) : (
+              <div className="mt-6 rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+                Este funcionário ainda não tem um horário atribuído.
+              </div>
+            )}
+
+            {showScheduleForm && (
+              <form
+                onSubmit={assignWorkSchedule}
+                className="mt-6 border-t border-slate-100 pt-6"
+              >
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_220px_auto] md:items-end">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">
+                      Novo horário
+                    </label>
+
+                    <select
+                      value={selectedWorkScheduleId}
+                      onChange={(event) =>
+                        setSelectedWorkScheduleId(
+                          event.target.value
+                        )
+                      }
+                      className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-800 outline-none focus:border-blue-500"
+                    >
+                      <option value="">
+                        Selecione um horário
+                      </option>
+
+                      {workSchedules.map((schedule) => (
+                        <option
+                          key={schedule.id}
+                          value={schedule.id}
+                        >
+                          {schedule.name}
+                          {schedule.typeName
+                            ? ` - ${schedule.typeName}`
+                            : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">
+                      Data de início
+                    </label>
+
+                    <input
+                      type="date"
+                      value={scheduleStartDate}
+                      onChange={(event) =>
+                        setScheduleStartDate(
+                          event.target.value
+                        )
+                      }
+                      min={
+                        employee.hireDate ||
+                        undefined
+                      }
+                      className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-800 outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={scheduleSaving}
+                    className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {scheduleSaving
+                      ? "A guardar..."
+                      : "Guardar"}
+                  </button>
+                </div>
+
+                <p className="mt-3 text-xs text-slate-500">
+                  Ao atribuir um novo horário, o anterior é fechado automaticamente no dia anterior à nova data de início.
+                </p>
+              </form>
+            )}
+          </section>
+
+          <section className="overflow-hidden rounded-xl bg-white shadow-sm">
+            <div className="border-b border-slate-100 px-6 py-5">
+              <h3 className="text-lg font-semibold text-slate-900">
+                Histórico de horários
+              </h3>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Histórico completo das atribuições de horário deste funcionário.
+              </p>
+            </div>
+
+            {scheduleLoading ? (
+              <div className="p-8 text-center text-slate-500">
+                A carregar histórico...
+              </div>
+            ) : employeeWorkSchedules.length === 0 ? (
+              <div className="p-8 text-center text-slate-500">
+                Ainda não existem horários atribuídos.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50">
+                    <tr className="border-b">
+                      <th className="px-6 py-4 font-semibold text-slate-600">
+                        Horário
+                      </th>
+                      <th className="px-6 py-4 font-semibold text-slate-600">
+                        Tipo
+                      </th>
+                      <th className="px-6 py-4 font-semibold text-slate-600">
+                        Início
+                      </th>
+                      <th className="px-6 py-4 font-semibold text-slate-600">
+                        Fim
+                      </th>
+                      <th className="px-6 py-4 font-semibold text-slate-600">
+                        Estado
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-slate-100">
+                    {employeeWorkSchedules.map(
+                      (assignment) => (
+                        <tr
+                          key={assignment.id}
+                          className="hover:bg-slate-50"
+                        >
+                          <td className="px-6 py-4 font-medium text-slate-800">
+                            {assignment.workScheduleName}
+                          </td>
+
+                          <td className="px-6 py-4 text-slate-600">
+                            {getWorkScheduleTypeName(
+                              assignment.workScheduleType
+                            )}
+                          </td>
+
+                          <td className="px-6 py-4 text-slate-600">
+                            {formatDate(
+                              assignment.startDate
+                            )}
+                          </td>
+
+                          <td className="px-6 py-4 text-slate-600">
+                            {assignment.endDate
+                              ? formatDate(
+                                  assignment.endDate
+                                )
+                              : "Atual"}
+                          </td>
+
+                          <td className="px-6 py-4">
+                            {assignment.isCurrent ? (
+                              <span className="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                                Atual
+                              </span>
+                            ) : (
+                              <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                                Histórico
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
+{activeTab === "vacations" && (
         <div className="space-y-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -2532,6 +2974,27 @@ function EmptyState({
 
       <p className="mt-1 text-sm text-slate-500">
         {description}
+      </p>
+    </div>
+  );
+}
+
+
+function InfoCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-lg bg-slate-50 p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+
+      <p className="mt-2 font-semibold text-slate-800">
+        {value}
       </p>
     </div>
   );

@@ -8,9 +8,12 @@ using HRVault.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using HRVault.Application.Attendance.Interfaces;
+using HRVault.Application.Attendance.Services;
 using HRVault.Infrastructure.BackgroundJobs;
 using HRVault.Infrastructure.Storage;
 using HRVault.Infrastructure.Email;
+
 
 namespace HRVault.Infrastructure;
 
@@ -77,6 +80,22 @@ public static class DependencyInjection
 		services.AddScoped<
 			ITimePunchRepository,
 			TimePunchRepository>();
+			
+		services.AddScoped<
+			IAttendanceReadRepository,
+			AttendanceReadRepository>();
+			
+		services.AddScoped<
+			IAttendanceCalculationService,
+			AttendanceCalculationService>();
+			
+		services.AddScoped<
+			IAttendanceWeekCalculationService,
+			AttendanceWeekCalculationService>();
+			
+		services.AddScoped<
+			IEmployeeWorkScheduleRepository,
+			EmployeeWorkScheduleRepository>();
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
 

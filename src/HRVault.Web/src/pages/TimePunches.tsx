@@ -25,14 +25,110 @@ interface TimePunch {
   createdAt: string;
 }
 
+interface AttendanceAlert {
+  type: string;
+  message: string;
+}
+
+interface AttendanceDay {
+  employeeId: string;
+  date: string;
+
+  workScheduleId?: string | null;
+  workScheduleName?: string | null;
+  workScheduleType?: string | null;
+
+  status: string;
+
+  expectedTime: string;
+  workedTime: string;
+  breakTime: string;
+  balance: string;
+
+  lateTime: string;
+  earlyLeaveTime: string;
+  overtime: string;
+
+  firstEntryUtc?: string | null;
+  lastExitUtc?: string | null;
+
+  alerts: AttendanceAlert[];
+}
+
+interface AttendanceWeekDay {
+  date: string;
+
+  workScheduleId?: string | null;
+  workScheduleName?: string | null;
+  workScheduleType?: string | null;
+
+  status: string;
+
+  expectedTime: string;
+  workedTime: string;
+  breakTime: string;
+  balance: string;
+
+  lateTime: string;
+  earlyLeaveTime: string;
+  overtime: string;
+
+  hasWorked: boolean;
+
+  alerts: AttendanceAlert[];
+}
+
+interface AttendanceWeek {
+  employeeId: string;
+
+  weekStart: string;
+  weekEnd: string;
+
+  status: string;
+
+  requiredWorkingDays: number;
+  workedDays: number;
+  missingWorkingDays: number;
+
+  expectedTime: string;
+  workedTime: string;
+  breakTime: string;
+  balance: string;
+  overtime: string;
+
+  alerts: AttendanceAlert[];
+
+  days: AttendanceWeekDay[];
+}
+
 type PunchDirection = 1 | 2;
+type ViewMode = "today" | "day" | "week";
 
 export default function TimePunches() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [punches, setPunches] = useState<TimePunch[]>([]);
+
   const [employeeId, setEmployeeId] = useState("");
+
+  const [viewMode, setViewMode] =
+    useState<ViewMode>("today");
+
+  const [selectedDate, setSelectedDate] =
+    useState(todayInputValue());
+
+  const [dayResult, setDayResult] =
+    useState<AttendanceDay | null>(null);
+
+  const [weekResult, setWeekResult] =
+    useState<AttendanceWeek | null>(null);
+
   const [loading, setLoading] = useState(true);
-  const [punching, setPunching] = useState<PunchDirection | null>(null);
+  const [analysisLoading, setAnalysisLoading] =
+    useState(false);
+
+  const [punching, setPunching] =
+    useState<PunchDirection | null>(null);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -40,15 +136,38 @@ export default function TimePunches() {
     void loadInitialData();
   }, []);
 
+  useEffect(() => {
+    if (viewMode === "day") {
+      setWeekResult(null);
+
+      if (employeeId && selectedDate) {
+        void loadDay();
+      } else {
+        setDayResult(null);
+      }
+    }
+
+    if (viewMode === "week") {
+      setDayResult(null);
+
+      if (employeeId && selectedDate) {
+        void loadWeek();
+      } else {
+        setWeekResult(null);
+      }
+    }
+  }, [viewMode, employeeId, selectedDate]);
+
   async function loadInitialData() {
     try {
       setLoading(true);
       setError("");
 
-      const [employeesResponse, punchesResponse] = await Promise.all([
-        api.get<Employee[]>("/Employees"),
-        api.get<TimePunch[]>("/TimePunches/today"),
-      ]);
+      const [employeesResponse, punchesResponse] =
+        await Promise.all([
+          api.get<Employee[]>("/Employees"),
+          api.get<TimePunch[]>("/TimePunches/today"),
+        ]);
 
       setEmployees(employeesResponse.data);
       setPunches(punchesResponse.data);
@@ -56,9 +175,10 @@ export default function TimePunches() {
       console.error("Erro ao carregar ponto:", error);
 
       setError(
-        error.response?.data?.message ??
-          error.response?.data?.title ??
+        apiError(
+          error,
           "Não foi possível carregar os dados de ponto."
+        )
       );
     } finally {
       setLoading(false);
@@ -69,9 +189,10 @@ export default function TimePunches() {
     try {
       setError("");
 
-      const response = await api.get<TimePunch[]>(
-        "/TimePunches/today"
-      );
+      const response =
+        await api.get<TimePunch[]>(
+          "/TimePunches/today"
+        );
 
       setPunches(response.data);
     } catch (error: any) {
@@ -81,10 +202,81 @@ export default function TimePunches() {
       );
 
       setError(
-        error.response?.data?.message ??
-          error.response?.data?.title ??
+        apiError(
+          error,
           "Não foi possível atualizar as picagens."
+        )
       );
+    }
+  }
+
+  async function loadDay() {
+    if (!employeeId || !selectedDate) {
+      return;
+    }
+
+    try {
+      setAnalysisLoading(true);
+      setError("");
+      setSuccess("");
+
+      const response =
+        await api.get<AttendanceDay>(
+          `/Attendance/employee/${employeeId}/day/${selectedDate}`
+        );
+
+      setDayResult(response.data);
+    } catch (error: any) {
+      console.error(
+        "Erro ao carregar resumo diário:",
+        error
+      );
+
+      setDayResult(null);
+
+      setError(
+        apiError(
+          error,
+          "Não foi possível carregar o resumo diário."
+        )
+      );
+    } finally {
+      setAnalysisLoading(false);
+    }
+  }
+
+  async function loadWeek() {
+    if (!employeeId || !selectedDate) {
+      return;
+    }
+
+    try {
+      setAnalysisLoading(true);
+      setError("");
+      setSuccess("");
+
+      const response =
+        await api.get<AttendanceWeek>(
+          `/Attendance/employee/${employeeId}/week/${selectedDate}`
+        );
+
+      setWeekResult(response.data);
+    } catch (error: any) {
+      console.error(
+        "Erro ao carregar resumo semanal:",
+        error
+      );
+
+      setWeekResult(null);
+
+      setError(
+        apiError(
+          error,
+          "Não foi possível carregar o resumo semanal."
+        )
+      );
+    } finally {
+      setAnalysisLoading(false);
     }
   }
 
@@ -119,18 +311,17 @@ export default function TimePunches() {
         error
       );
 
-      if (error.response?.status === 409) {
-        setError(
-          error.response?.data?.message ??
-            "Já existe uma picagem recente para este funcionário."
-        );
-      } else {
-        setError(
-          error.response?.data?.message ??
-            error.response?.data?.title ??
-            "Não foi possível registar a picagem."
-        );
-      }
+      setError(
+        error.response?.status === 409
+          ? apiError(
+              error,
+              "Já existe uma picagem recente para este funcionário."
+            )
+          : apiError(
+              error,
+              "Não foi possível registar a picagem."
+            )
+      );
     } finally {
       setPunching(null);
     }
@@ -138,7 +329,8 @@ export default function TimePunches() {
 
   const selectedEmployee =
     employees.find(
-      (employee) => employee.id === employeeId
+      (employee) =>
+        employee.id === employeeId
     ) ?? null;
 
   const selectedEmployeePunches =
@@ -158,8 +350,12 @@ export default function TimePunches() {
     selectedEmployeePunches.length > 0
       ? [...selectedEmployeePunches].sort(
           (a, b) =>
-            new Date(b.timestampUtc).getTime() -
-            new Date(a.timestampUtc).getTime()
+            new Date(
+              b.timestampUtc
+            ).getTime() -
+            new Date(
+              a.timestampUtc
+            ).getTime()
         )[0]
       : null;
 
@@ -171,8 +367,37 @@ export default function TimePunches() {
         </h2>
 
         <p className="mt-1 text-sm text-slate-500">
-          Registo e consulta das picagens dos funcionários.
+          Registo e análise das presenças dos funcionários.
         </p>
+      </div>
+
+      <div className="inline-flex rounded-xl bg-slate-200 p-1">
+        <TabButton
+          active={viewMode === "today"}
+          onClick={() =>
+            setViewMode("today")
+          }
+        >
+          Hoje
+        </TabButton>
+
+        <TabButton
+          active={viewMode === "day"}
+          onClick={() =>
+            setViewMode("day")
+          }
+        >
+          Dia
+        </TabButton>
+
+        <TabButton
+          active={viewMode === "week"}
+          onClick={() =>
+            setViewMode("week")
+          }
+        >
+          Semana
+        </TabButton>
       </div>
 
       {error && (
@@ -187,268 +412,725 @@ export default function TimePunches() {
         </div>
       )}
 
-      <section className="rounded-xl bg-white p-6 shadow-sm">
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
-          <div>
-            <label className="block text-sm font-medium text-slate-700">
-              Funcionário
-            </label>
+      {viewMode === "today" && (
+        <>
+          <section className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
+              <EmployeeSelect
+                employees={employees}
+                value={employeeId}
+                disabled={loading}
+                onChange={(value) => {
+                  setEmployeeId(value);
+                  setError("");
+                  setSuccess("");
+                }}
+              />
 
-            <select
-              value={employeeId}
-              onChange={(event) => {
-                setEmployeeId(event.target.value);
-                setError("");
-                setSuccess("");
-              }}
-              disabled={loading}
-              className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-3 text-sm text-slate-800 outline-none focus:border-blue-500 disabled:bg-slate-100"
-            >
-              <option value="">
-                Selecione um funcionário
-              </option>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  disabled={
+                    !employeeId ||
+                    punching !== null
+                  }
+                  onClick={() =>
+                    void registerPunch(1)
+                  }
+                  className="min-w-32 rounded-lg bg-green-600 px-5 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {punching === 1
+                    ? "A registar..."
+                    : "Entrada"}
+                </button>
 
-              {employees
-                .slice()
-                .sort((a, b) =>
-                  employeeName(a).localeCompare(
-                    employeeName(b),
-                    "pt"
-                  )
-                )
-                .map((employee) => (
-                  <option
-                    key={employee.id}
-                    value={employee.id}
-                  >
-                    {employee.employeeNumber
-                      ? `${employee.employeeNumber} - `
-                      : ""}
-                    {employeeName(employee)}
-                  </option>
-                ))}
-            </select>
-          </div>
+                <button
+                  type="button"
+                  disabled={
+                    !employeeId ||
+                    punching !== null
+                  }
+                  onClick={() =>
+                    void registerPunch(2)
+                  }
+                  className="min-w-32 rounded-lg bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {punching === 2
+                    ? "A registar..."
+                    : "Saída"}
+                </button>
+              </div>
+            </div>
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              disabled={
-                !employeeId ||
-                punching !== null
-              }
-              onClick={() =>
-                void registerPunch(1)
-              }
-              className="min-w-32 rounded-lg bg-green-600 px-5 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {punching === 1
-                ? "A registar..."
-                : "Entrada"}
-            </button>
+            {selectedEmployee && (
+              <div className="mt-6 grid grid-cols-1 gap-4 border-t border-slate-100 pt-5 sm:grid-cols-3">
+                <InfoCard
+                  label="Funcionário"
+                  value={employeeName(
+                    selectedEmployee
+                  )}
+                />
 
-            <button
-              type="button"
-              disabled={
-                !employeeId ||
-                punching !== null
-              }
-              onClick={() =>
-                void registerPunch(2)
-              }
-              className="min-w-32 rounded-lg bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {punching === 2
-                ? "A registar..."
-                : "Saída"}
-            </button>
-          </div>
-        </div>
+                <InfoCard
+                  label="Picagens hoje"
+                  value={String(
+                    selectedEmployeePunches.length
+                  )}
+                />
 
-        {selectedEmployee && (
-          <div className="mt-6 grid grid-cols-1 gap-4 border-t border-slate-100 pt-5 sm:grid-cols-3">
-            <InfoCard
-              label="Funcionário"
-              value={employeeName(
-                selectedEmployee
-              )}
-            />
+                <InfoCard
+                  label="Última picagem"
+                  value={
+                    lastPunch
+                      ? `${formatTime(
+                          lastPunch.timestampUtc
+                        )} · ${
+                          lastPunch.directionName
+                        }`
+                      : "-"
+                  }
+                />
+              </div>
+            )}
+          </section>
 
-            <InfoCard
-              label="Picagens hoje"
-              value={String(
-                selectedEmployeePunches.length
-              )}
-            />
-
-            <InfoCard
-              label="Última picagem"
-              value={
-                lastPunch
-                  ? `${formatTime(
-                      lastPunch.timestampUtc
-                    )} · ${
-                      lastPunch.directionName
-                    }`
-                  : "-"
-              }
-            />
-          </div>
-        )}
-      </section>
-
-      <section className="overflow-hidden rounded-xl bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">
-              Picagens de hoje
-            </h3>
-
-            <p className="mt-1 text-sm text-slate-500">
-              {loading
-                ? "A carregar..."
-                : `${punches.length} ${
-                    punches.length === 1
-                      ? "picagem"
-                      : "picagens"
-                  }`}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() =>
+          <TodayPunchTable
+            punches={punches}
+            loading={loading}
+            onRefresh={() =>
               void loadTodayPunches()
             }
-            disabled={loading}
-            className="self-start rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-          >
-            Atualizar
-          </button>
+          />
+        </>
+      )}
+
+      {viewMode === "day" && (
+        <>
+          <AnalysisFilters
+            employees={employees}
+            employeeId={employeeId}
+            selectedDate={selectedDate}
+            loading={loading}
+            onEmployeeChange={(value) => {
+              setEmployeeId(value);
+              setError("");
+            }}
+            onDateChange={(value) => {
+              setSelectedDate(value);
+              setError("");
+            }}
+            onRefresh={() =>
+              void loadDay()
+            }
+          />
+
+          {analysisLoading ? (
+            <LoadingCard text="A calcular o dia..." />
+          ) : dayResult ? (
+            <DaySummary result={dayResult} />
+          ) : (
+            <EmptyAnalysis
+              text="Selecione um funcionário e uma data para consultar o dia."
+            />
+          )}
+        </>
+      )}
+
+      {viewMode === "week" && (
+        <>
+          <AnalysisFilters
+            employees={employees}
+            employeeId={employeeId}
+            selectedDate={selectedDate}
+            loading={loading}
+            onEmployeeChange={(value) => {
+              setEmployeeId(value);
+              setError("");
+            }}
+            onDateChange={(value) => {
+              setSelectedDate(value);
+              setError("");
+            }}
+            onRefresh={() =>
+              void loadWeek()
+            }
+          />
+
+          {analysisLoading ? (
+            <LoadingCard text="A calcular a semana..." />
+          ) : weekResult ? (
+            <WeekSummary result={weekResult} />
+          ) : (
+            <EmptyAnalysis
+              text="Selecione um funcionário e uma data para consultar a semana."
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function AnalysisFilters({
+  employees,
+  employeeId,
+  selectedDate,
+  loading,
+  onEmployeeChange,
+  onDateChange,
+  onRefresh,
+}: {
+  employees: Employee[];
+  employeeId: string;
+  selectedDate: string;
+  loading: boolean;
+  onEmployeeChange: (value: string) => void;
+  onDateChange: (value: string) => void;
+  onRefresh: () => void;
+}) {
+  return (
+    <section className="rounded-xl bg-white p-6 shadow-sm">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_220px_auto] md:items-end">
+        <EmployeeSelect
+          employees={employees}
+          value={employeeId}
+          disabled={loading}
+          onChange={onEmployeeChange}
+        />
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700">
+            Data
+          </label>
+
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(event) =>
+              onDateChange(
+                event.target.value
+              )
+            }
+            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-3 text-sm text-slate-800 outline-none focus:border-blue-500"
+          />
         </div>
 
-        {loading ? (
-          <div className="p-8 text-center text-slate-500">
-            A carregar picagens...
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50">
-                <tr className="border-b">
-                  <th className="px-6 py-4 font-semibold text-slate-600">
-                    Hora
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-slate-600">
-                    Funcionário
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-slate-600">
-                    Picagem
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-slate-600">
-                    Origem
-                  </th>
-                  <th className="px-6 py-4 font-semibold text-slate-600">
-                    Estado
-                  </th>
-                </tr>
-              </thead>
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={
+            !employeeId ||
+            !selectedDate
+          }
+          className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Atualizar
+        </button>
+      </div>
+    </section>
+  );
+}
 
-              <tbody className="divide-y divide-slate-100">
-                {punches.map((punch) => (
-                  <tr
-                    key={punch.id}
-                    className={
-                      punch.isVoided
-                        ? "bg-slate-50 opacity-60"
-                        : "hover:bg-slate-50"
-                    }
-                  >
-                    <td className="px-6 py-4 font-semibold tabular-nums text-slate-900">
-                      {formatTime(
-                        punch.timestampUtc
-                      )}
-                    </td>
+function DaySummary({
+  result,
+}: {
+  result: AttendanceDay;
+}) {
+  return (
+    <div className="space-y-6">
+      <section className="rounded-xl bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm text-slate-500">
+              {formatDate(result.date)}
+            </p>
 
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-slate-800">
-                        {punch.employeeName}
-                      </div>
-                    </td>
+            <h3 className="mt-1 text-xl font-semibold text-slate-900">
+              {result.workScheduleName ??
+                "Sem horário"}
+            </h3>
 
-                    <td className="px-6 py-4">
-                      <DirectionBadge
-                        direction={
-                          punch.direction
-                        }
-                        label={
-                          punch.directionName
-                        }
-                      />
-                    </td>
-
-                    <td className="px-6 py-4 text-slate-600">
-                      {punch.sourceName}
-                    </td>
-
-                    <td className="px-6 py-4">
-                      {punch.isVoided ? (
-                        <span className="inline-flex rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
-                          Anulada
-                        </span>
-                      ) : (
-                        <span className="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-                          Válida
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-
-                {punches.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-6 py-12 text-center text-slate-500"
-                    >
-                      Ainda não existem picagens hoje.
-                    </td>
-                  </tr>
+            {result.workScheduleType && (
+              <p className="mt-1 text-sm text-slate-500">
+                {scheduleTypeLabel(
+                  result.workScheduleType
                 )}
-              </tbody>
-            </table>
+              </p>
+            )}
           </div>
-        )}
+
+          <StatusBadge
+            status={result.status}
+          />
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
+          <Metric
+            label="Previsto"
+            value={result.expectedTime}
+          />
+          <Metric
+            label="Trabalhado"
+            value={result.workedTime}
+          />
+          <Metric
+            label="Pausas"
+            value={result.breakTime}
+          />
+          <Metric
+            label="Saldo"
+            value={result.balance}
+          />
+          <Metric
+            label="Atraso"
+            value={result.lateTime}
+          />
+          <Metric
+            label="Saída antecipada"
+            value={result.earlyLeaveTime}
+          />
+          <Metric
+            label="Horas extra"
+            value={result.overtime}
+          />
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">
+          <InfoCard
+            label="Primeira entrada"
+            value={
+              result.firstEntryUtc
+                ? formatTime(
+                    result.firstEntryUtc
+                  )
+                : "-"
+            }
+          />
+
+          <InfoCard
+            label="Última saída"
+            value={
+              result.lastExitUtc
+                ? formatTime(
+                    result.lastExitUtc
+                  )
+                : "-"
+            }
+          />
+        </div>
+      </section>
+
+      <Alerts alerts={result.alerts} />
+    </div>
+  );
+}
+
+function WeekSummary({
+  result,
+}: {
+  result: AttendanceWeek;
+}) {
+  return (
+    <div className="space-y-6">
+      <section className="rounded-xl bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm text-slate-500">
+              Semana
+            </p>
+
+            <h3 className="mt-1 text-xl font-semibold text-slate-900">
+              {formatDate(result.weekStart)}
+              {" — "}
+              {formatDate(result.weekEnd)}
+            </h3>
+          </div>
+
+          <StatusBadge
+            status={result.status}
+          />
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-8">
+          <Metric
+            label="Dias obrigatórios"
+            value={String(
+              result.requiredWorkingDays
+            )}
+          />
+          <Metric
+            label="Dias trabalhados"
+            value={String(
+              result.workedDays
+            )}
+          />
+          <Metric
+            label="Dias em falta"
+            value={String(
+              result.missingWorkingDays
+            )}
+          />
+          <Metric
+            label="Previsto"
+            value={result.expectedTime}
+          />
+          <Metric
+            label="Trabalhado"
+            value={result.workedTime}
+          />
+          <Metric
+            label="Pausas"
+            value={result.breakTime}
+          />
+          <Metric
+            label="Saldo"
+            value={result.balance}
+          />
+          <Metric
+            label="Horas extra"
+            value={result.overtime}
+          />
+        </div>
+      </section>
+
+      <Alerts alerts={result.alerts} />
+
+      <section className="overflow-hidden rounded-xl bg-white shadow-sm">
+        <div className="border-b border-slate-100 px-6 py-5">
+          <h3 className="text-lg font-semibold text-slate-900">
+            Detalhe da semana
+          </h3>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50">
+              <tr className="border-b">
+                <th className="px-5 py-4 font-semibold text-slate-600">
+                  Dia
+                </th>
+                <th className="px-5 py-4 font-semibold text-slate-600">
+                  Horário
+                </th>
+                <th className="px-5 py-4 font-semibold text-slate-600">
+                  Estado
+                </th>
+                <th className="px-5 py-4 font-semibold text-slate-600">
+                  Previsto
+                </th>
+                <th className="px-5 py-4 font-semibold text-slate-600">
+                  Trabalhado
+                </th>
+                <th className="px-5 py-4 font-semibold text-slate-600">
+                  Pausas
+                </th>
+                <th className="px-5 py-4 font-semibold text-slate-600">
+                  Saldo
+                </th>
+                <th className="px-5 py-4 font-semibold text-slate-600">
+                  Extra
+                </th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {result.days.map((day) => (
+                <tr
+                  key={day.date}
+                  className="hover:bg-slate-50"
+                >
+                  <td className="px-5 py-4">
+                    <div className="font-medium text-slate-800">
+                      {weekdayLabel(
+                        day.date
+                      )}
+                    </div>
+
+                    <div className="mt-0.5 text-xs text-slate-400">
+                      {formatDate(
+                        day.date
+                      )}
+                    </div>
+                  </td>
+
+                  <td className="px-5 py-4 text-slate-600">
+                    {day.workScheduleName ??
+                      "-"}
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <StatusBadge
+                      status={day.status}
+                    />
+                  </td>
+
+                  <td className="px-5 py-4 tabular-nums text-slate-600">
+                    {day.expectedTime}
+                  </td>
+
+                  <td className="px-5 py-4 tabular-nums font-medium text-slate-800">
+                    {day.workedTime}
+                  </td>
+
+                  <td className="px-5 py-4 tabular-nums text-slate-600">
+                    {day.breakTime}
+                  </td>
+
+                  <td className="px-5 py-4 tabular-nums text-slate-600">
+                    {day.balance}
+                  </td>
+
+                  <td className="px-5 py-4 tabular-nums text-slate-600">
+                    {day.overtime}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );
 }
 
-function employeeName(employee: Employee) {
-  if (employee.fullName?.trim()) {
-    return employee.fullName.trim();
-  }
+function TodayPunchTable({
+  punches,
+  loading,
+  onRefresh,
+}: {
+  punches: TimePunch[];
+  loading: boolean;
+  onRefresh: () => void;
+}) {
+  return (
+    <section className="overflow-hidden rounded-xl bg-white shadow-sm">
+      <div className="flex flex-col gap-3 border-b border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900">
+            Picagens de hoje
+          </h3>
 
-  const name = [
-    employee.firstName,
-    employee.lastName,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
+          <p className="mt-1 text-sm text-slate-500">
+            {loading
+              ? "A carregar..."
+              : `${punches.length} ${
+                  punches.length === 1
+                    ? "picagem"
+                    : "picagens"
+                }`}
+          </p>
+        </div>
 
-  return name || "Funcionário";
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={loading}
+          className="self-start rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          Atualizar
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="p-8 text-center text-slate-500">
+          A carregar picagens...
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50">
+              <tr className="border-b">
+                <th className="px-6 py-4 font-semibold text-slate-600">
+                  Hora
+                </th>
+                <th className="px-6 py-4 font-semibold text-slate-600">
+                  Funcionário
+                </th>
+                <th className="px-6 py-4 font-semibold text-slate-600">
+                  Picagem
+                </th>
+                <th className="px-6 py-4 font-semibold text-slate-600">
+                  Origem
+                </th>
+                <th className="px-6 py-4 font-semibold text-slate-600">
+                  Estado
+                </th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {punches.map((punch) => (
+                <tr
+                  key={punch.id}
+                  className={
+                    punch.isVoided
+                      ? "bg-slate-50 opacity-60"
+                      : "hover:bg-slate-50"
+                  }
+                >
+                  <td className="px-6 py-4 font-semibold tabular-nums text-slate-900">
+                    {formatTime(
+                      punch.timestampUtc
+                    )}
+                  </td>
+
+                  <td className="px-6 py-4 font-medium text-slate-800">
+                    {punch.employeeName}
+                  </td>
+
+                  <td className="px-6 py-4">
+                    <DirectionBadge
+                      direction={
+                        punch.direction
+                      }
+                      label={
+                        punch.directionName
+                      }
+                    />
+                  </td>
+
+                  <td className="px-6 py-4 text-slate-600">
+                    {punch.sourceName}
+                  </td>
+
+                  <td className="px-6 py-4">
+                    {punch.isVoided ? (
+                      <span className="inline-flex rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
+                        Anulada
+                      </span>
+                    ) : (
+                      <span className="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                        Válida
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+
+              {punches.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-6 py-12 text-center text-slate-500"
+                  >
+                    Ainda não existem picagens hoje.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
 }
 
-function formatTime(timestampUtc: string) {
-  return new Intl.DateTimeFormat(
-    "pt-PT",
-    {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }
-  ).format(new Date(timestampUtc));
+function EmployeeSelect({
+  employees,
+  value,
+  disabled,
+  onChange,
+}: {
+  employees: Employee[];
+  value: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-slate-700">
+        Funcionário
+      </label>
+
+      <select
+        value={value}
+        onChange={(event) =>
+          onChange(event.target.value)
+        }
+        disabled={disabled}
+        className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-3 text-sm text-slate-800 outline-none focus:border-blue-500 disabled:bg-slate-100"
+      >
+        <option value="">
+          Selecione um funcionário
+        </option>
+
+        {employees
+          .slice()
+          .sort((a, b) =>
+            employeeName(a).localeCompare(
+              employeeName(b),
+              "pt"
+            )
+          )
+          .map((employee) => (
+            <option
+              key={employee.id}
+              value={employee.id}
+            >
+              {employee.employeeNumber
+                ? `${employee.employeeNumber} - `
+                : ""}
+              {employeeName(employee)}
+            </option>
+          ))}
+      </select>
+    </div>
+  );
+}
+
+function Alerts({
+  alerts,
+}: {
+  alerts: AttendanceAlert[];
+}) {
+  if (alerts.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+      <h3 className="font-semibold text-amber-900">
+        Alertas
+      </h3>
+
+      <div className="mt-3 space-y-2">
+        {alerts.map((alert, index) => (
+          <div
+            key={`${alert.type}-${index}`}
+            className="rounded-lg bg-white/70 px-4 py-3 text-sm text-amber-900"
+          >
+            <span className="font-semibold">
+              {alertTypeLabel(
+                alert.type
+              )}
+            </span>
+            {" — "}
+            {alert.message}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Metric({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-lg bg-slate-50 p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+
+      <p className="mt-2 text-lg font-bold tabular-nums text-slate-900">
+        {value}
+      </p>
+    </div>
+  );
 }
 
 function InfoCard({
@@ -468,6 +1150,87 @@ function InfoCard({
         {value}
       </p>
     </div>
+  );
+}
+
+function LoadingCard({
+  text,
+}: {
+  text: string;
+}) {
+  return (
+    <div className="rounded-xl bg-white p-10 text-center text-slate-500 shadow-sm">
+      {text}
+    </div>
+  );
+}
+
+function EmptyAnalysis({
+  text,
+}: {
+  text: string;
+}) {
+  return (
+    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
+      {text}
+    </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg px-5 py-2.5 text-sm font-semibold transition ${
+        active
+          ? "bg-white text-blue-700 shadow-sm"
+          : "text-slate-600 hover:text-slate-900"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function StatusBadge({
+  status,
+}: {
+  status: string;
+}) {
+  const config: Record<
+    string,
+    string
+  > = {
+    Complete:
+      "bg-green-100 text-green-700",
+    InProgress:
+      "bg-blue-100 text-blue-700",
+    Incomplete:
+      "bg-amber-100 text-amber-800",
+    NoPunches:
+      "bg-red-100 text-red-700",
+    NonWorkingDay:
+      "bg-slate-100 text-slate-600",
+  };
+
+  return (
+    <span
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+        config[status] ??
+        "bg-slate-100 text-slate-600"
+      }`}
+    >
+      {statusLabel(status)}
+    </span>
   );
 }
 
@@ -499,4 +1262,140 @@ function DirectionBadge({
       {label || "Não definido"}
     </span>
   );
+}
+
+function employeeName(employee: Employee) {
+  if (employee.fullName?.trim()) {
+    return employee.fullName.trim();
+  }
+
+  const name = [
+    employee.firstName,
+    employee.lastName,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  return name || "Funcionário";
+}
+
+function formatTime(timestampUtc: string) {
+  return new Intl.DateTimeFormat(
+    "pt-PT",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }
+  ).format(new Date(timestampUtc));
+}
+
+function formatDate(value: string) {
+  const [year, month, day] =
+    value.split("-").map(Number);
+
+  return new Intl.DateTimeFormat(
+    "pt-PT",
+    {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }
+  ).format(
+    new Date(year, month - 1, day)
+  );
+}
+
+function weekdayLabel(value: string) {
+  const [year, month, day] =
+    value.split("-").map(Number);
+
+  const text =
+    new Intl.DateTimeFormat(
+      "pt-PT",
+      {
+        weekday: "long",
+      }
+    ).format(
+      new Date(year, month - 1, day)
+    );
+
+  return (
+    text.charAt(0).toUpperCase() +
+    text.slice(1)
+  );
+}
+
+function statusLabel(status: string) {
+  const labels: Record<
+    string,
+    string
+  > = {
+    InProgress: "Em curso",
+    Complete: "Completo",
+    Incomplete: "Incompleto",
+    NoPunches: "Sem picagens",
+    NonWorkingDay: "Dia não trabalhado",
+  };
+
+  return labels[status] ?? status;
+}
+
+function alertTypeLabel(type: string) {
+  const labels: Record<
+    string,
+    string
+  > = {
+    MissingExit: "Falta saída",
+    MissingEntry: "Falta entrada",
+    InvalidSequence:
+      "Sequência inválida",
+    MissingWorkingDays:
+      "Dias de trabalho em falta",
+  };
+
+  return labels[type] ?? type;
+}
+
+function scheduleTypeLabel(type: string) {
+  const labels: Record<
+    string,
+    string
+  > = {
+    Fixed: "Horário fixo",
+    Flexible: "Horário livre",
+    WeeklyVariable:
+      "Semana variável",
+    ScheduleExempt:
+      "Isenção de horário",
+  };
+
+  return labels[type] ?? type;
+}
+
+function apiError(
+  error: any,
+  fallback: string
+) {
+  return (
+    error.response?.data?.message ??
+    error.response?.data?.title ??
+    fallback
+  );
+}
+
+function todayInputValue() {
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(
+    now.getMonth() + 1
+  ).padStart(2, "0");
+
+  const day = String(
+    now.getDate()
+  ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }

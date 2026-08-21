@@ -1,0 +1,3 @@
+Adicionar ao enum AttendanceAlertType:
+
+MissingWorkingDays = 4
