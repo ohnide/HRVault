@@ -18,6 +18,11 @@ const mainMenuItems = [
     icon: "👥",
   },
   {
+  label: "Ponto",
+  path: "/time-punches",
+  icon: "⏱️",
+  },
+  {
     label: "Ausências",
     path: "/absences",
     icon: "📆",

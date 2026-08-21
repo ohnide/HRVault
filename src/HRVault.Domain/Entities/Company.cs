@@ -28,4 +28,6 @@ public class Company : SoftDeleteEntity
 
     public ICollection<Role> Roles { get; set; }
         = new List<Role>();
+		
+	public string TimeZoneId { get; set; } = "Europe/Lisbon";
 }

@@ -1,0 +1,6 @@
+Adicionar à configuração EF da Company:
+
+builder.Property(x => x.TimeZoneId)
+    .HasMaxLength(100)
+    .IsRequired()
+    .HasDefaultValue("Europe/Lisbon");

@@ -45,5 +45,9 @@ public class CompanyConfiguration
             .WithOne(x => x.Company)
             .HasForeignKey(x => x.CompanyId);
 			
+		builder.Property(x => x.TimeZoneId)
+			.HasMaxLength(100)
+			.IsRequired()
+			.HasDefaultValue("Europe/Lisbon");			
     }
 }

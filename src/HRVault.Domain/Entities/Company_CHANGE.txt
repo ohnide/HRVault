@@ -1,0 +1,5 @@
+Adicionar à entidade Company:
+
+// Timezone IANA da empresa.
+// Exemplo Portugal continental: Europe/Lisbon
+public string TimeZoneId { get; set; } = "Europe/Lisbon";

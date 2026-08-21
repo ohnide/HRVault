@@ -49,6 +49,12 @@ public class ApplicationDbContext : DbContext
 	
 	public DbSet<VacationBalance> VacationBalances => Set<VacationBalance>();
 	
+	public DbSet<AttendanceDevice> AttendanceDevices => Set<AttendanceDevice>();
+	public DbSet<EmployeeDeviceIdentity> EmployeeDeviceIdentities => Set<EmployeeDeviceIdentity>();
+	public DbSet<AttendanceEvent> AttendanceEvents => Set<AttendanceEvent>();
+	public DbSet<TimePunch> TimePunches => Set<TimePunch>();
+
+	
 	public DbSet<VacationRequest> VacationRequests =>
 		Set<VacationRequest>();
 	

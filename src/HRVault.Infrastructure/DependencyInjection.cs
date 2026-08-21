@@ -34,6 +34,8 @@ public static class DependencyInjection
         services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
         services.AddScoped<IUserRoleRepository, UserRoleRepository>();
         services.AddScoped<IPermissionRepository, PermissionRepository>();
+		
+		services.AddScoped<ICompanyTimeZoneService, CompanyTimeZoneService>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 		
@@ -71,6 +73,10 @@ public static class DependencyInjection
 		services.AddScoped<
 			IWorkScheduleRepository,
 			WorkScheduleRepository>();
+			
+		services.AddScoped<
+			ITimePunchRepository,
+			TimePunchRepository>();
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
 

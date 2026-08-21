@@ -41,6 +41,8 @@ import Vacations from "./pages/Vacations";
 import Calendar from "./pages/Calendar";
 import WorkSchedules from "./pages/WorkSchedules";
 
+import TimePunches from "./pages/TimePunches";
+
 
 function Login() {
   const navigate = useNavigate();
@@ -304,6 +306,11 @@ function App() {
 		<Route
 		  path="/work-schedules"
 		  element={<WorkSchedules />}
+		/>
+		
+		<Route
+		  path="/time-punches"
+		  element={<TimePunches />}
 		/>
 	
       </Route>
