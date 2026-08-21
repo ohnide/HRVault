@@ -39,6 +39,7 @@ import Absences from "./pages/Absences";
 
 import Vacations from "./pages/Vacations";
 import Calendar from "./pages/Calendar";
+import WorkSchedules from "./pages/WorkSchedules";
 
 
 function Login() {
@@ -298,6 +299,11 @@ function App() {
 		<Route
 		  path="/calendar"
 		  element={<Calendar />}
+		/>
+
+		<Route
+		  path="/work-schedules"
+		  element={<WorkSchedules />}
 		/>
 	
       </Route>

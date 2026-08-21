@@ -46,14 +46,9 @@ const settingsMenuItems = [
     icon: "💼",
   },
   {
-    label: "Utilizadores",
-    path: "/users",
-    icon: "👤",
-  },
-  {
-    label: "Roles",
-    path: "/roles",
-    icon: "🔐",
+    label: "Horários",
+    path: "/work-schedules",
+    icon: "🕒",
   },
   {
     label: "Tipos de documentos",
@@ -64,6 +59,16 @@ const settingsMenuItems = [
     label: "Tipos de ausência",
     path: "/settings/absence-types",
     icon: "📅",
+  },
+  {
+    label: "Utilizadores",
+    path: "/users",
+    icon: "👤",
+  },
+  {
+    label: "Roles",
+    path: "/roles",
+    icon: "🔐",
   },
 ];
 

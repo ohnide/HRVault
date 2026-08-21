@@ -4,30 +4,20 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace HRVault.Infrastructure.Configurations;
 
-public class WorkScheduleConfiguration
-    : IEntityTypeConfiguration<WorkSchedule>
+public class WorkScheduleConfiguration : IEntityTypeConfiguration<WorkSchedule>
 {
-    public void Configure(
-        EntityTypeBuilder<WorkSchedule> builder)
+    public void Configure(EntityTypeBuilder<WorkSchedule> builder)
     {
         builder.ToTable("WorkSchedules");
-
         builder.HasKey(x => x.Id);
 
-        builder.Property(x => x.Name)
-            .HasMaxLength(150)
-            .IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+        builder.Property(x => x.Description).HasMaxLength(500);
+        builder.Property(x => x.Type).IsRequired();
 
-        builder.Property(x => x.Description)
-            .HasMaxLength(500);
-
-        builder.HasIndex(x => new
-        {
-            x.CompanyId,
-            x.Name
-        })
-        .IsUnique()
-        .HasFilter("\"IsDeleted\" = false");
+        builder.HasIndex(x => new { x.CompanyId, x.Name })
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false");
 
         builder.HasOne(x => x.Company)
             .WithMany()

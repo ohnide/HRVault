@@ -67,6 +67,10 @@ public static class DependencyInjection
 		
 		services.AddHostedService<
 			DocumentAlertBackgroundService>();
+			
+		services.AddScoped<
+			IWorkScheduleRepository,
+			WorkScheduleRepository>();
 
         services.AddScoped<IPasswordHasher, PasswordHasher>();
 

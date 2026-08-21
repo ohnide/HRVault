@@ -16,11 +16,15 @@ public class WorkScheduleDayConfiguration
         builder.Property(x => x.DayOfWeek)
             .IsRequired();
 
+        builder.Property(x => x.RequiredDailyTime)
+            .HasColumnType("time without time zone");
+
         builder.HasIndex(x => new
         {
             x.WorkScheduleId,
             x.DayOfWeek
-        }).IsUnique();
+        })
+        .IsUnique();
 
         builder.HasMany(x => x.Periods)
             .WithOne(x => x.WorkScheduleDay)

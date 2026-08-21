@@ -104,7 +104,7 @@ public class ApplicationDbContext : DbContext
     }
 
     private void PrepareEntitiesForSave()
-	{
+	{		
 		CreateAuditLogs();
 		UpdateSoftDeleteEntities();
 		UpdateAuditableEntities();
