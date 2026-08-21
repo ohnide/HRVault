@@ -89,6 +89,7 @@ public class GetTodayTimePunchesQueryHandler
                     AttendanceEventDirection.Exit => "Saída",
                     _ => "Não definido"
                 },
+				AdjustmentReason = x.AdjustmentReason,
                 AttendanceDeviceId = x.AttendanceDeviceId,
                 IsVoided = x.IsVoided,
                 VoidReason = x.VoidReason,

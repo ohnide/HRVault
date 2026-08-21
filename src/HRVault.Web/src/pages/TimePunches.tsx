@@ -22,6 +22,7 @@ interface TimePunch {
   attendanceDeviceId?: string | null;
   isVoided: boolean;
   voidReason?: string | null;
+  adjustmentReason?: string | null;
   createdAt: string;
 }
 
@@ -107,6 +108,7 @@ type ViewMode = "today" | "day" | "week";
 export default function TimePunches() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [punches, setPunches] = useState<TimePunch[]>([]);
+  const [dayPunches, setDayPunches] = useState<TimePunch[]>([]);
 
   const [employeeId, setEmployeeId] = useState("");
 
@@ -132,6 +134,21 @@ export default function TimePunches() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  const [showManualForm, setShowManualForm] =
+    useState(false);
+
+  const [manualDirection, setManualDirection] =
+    useState<PunchDirection>(1);
+
+  const [manualTime, setManualTime] =
+    useState("08:00");
+
+  const [manualReason, setManualReason] =
+    useState("");
+
+  const [manualSaving, setManualSaving] =
+    useState(false);
+
   useEffect(() => {
     void loadInitialData();
   }, []);
@@ -144,11 +161,13 @@ export default function TimePunches() {
         void loadDay();
       } else {
         setDayResult(null);
+        setDayPunches([]);
       }
     }
 
     if (viewMode === "week") {
       setDayResult(null);
+      setDayPunches([]);
 
       if (employeeId && selectedDate) {
         void loadWeek();
@@ -220,12 +239,34 @@ export default function TimePunches() {
       setError("");
       setSuccess("");
 
-      const response =
-        await api.get<AttendanceDay>(
-          `/Attendance/employee/${employeeId}/day/${selectedDate}`
-        );
+      const fromUtc =
+        new Date(
+          `${selectedDate}T00:00:00`
+        ).toISOString();
 
-      setDayResult(response.data);
+      const toUtc =
+        new Date(
+          `${selectedDate}T23:59:59`
+        ).toISOString();
+
+      const [summaryResponse, punchesResponse] =
+        await Promise.all([
+          api.get<AttendanceDay>(
+            `/Attendance/employee/${employeeId}/day/${selectedDate}`
+          ),
+          api.get<TimePunch[]>(
+            `/TimePunches/employee/${employeeId}`,
+            {
+              params: {
+                fromUtc,
+                toUtc,
+              },
+            }
+          ),
+        ]);
+
+      setDayResult(summaryResponse.data);
+      setDayPunches(punchesResponse.data ?? []);
     } catch (error: any) {
       console.error(
         "Erro ao carregar resumo diário:",
@@ -233,6 +274,7 @@ export default function TimePunches() {
       );
 
       setDayResult(null);
+      setDayPunches([]);
 
       setError(
         apiError(
@@ -324,6 +366,74 @@ export default function TimePunches() {
       );
     } finally {
       setPunching(null);
+    }
+  }
+
+  async function createManualPunch(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    if (!employeeId) {
+      setError("Selecione um funcionário.");
+      return;
+    }
+
+    if (!selectedDate) {
+      setError("Selecione uma data.");
+      return;
+    }
+
+    if (!manualTime) {
+      setError("Indique a hora.");
+      return;
+    }
+
+    if (!manualReason.trim()) {
+      setError(
+        "O motivo da picagem manual é obrigatório."
+      );
+      return;
+    }
+
+    try {
+      setManualSaving(true);
+      setError("");
+      setSuccess("");
+
+      await api.post(
+        "/TimePunches/manual",
+        {
+          employeeId,
+          localDate: selectedDate,
+          localTime: manualTime,
+          direction: manualDirection,
+          reason: manualReason.trim(),
+        }
+      );
+
+      setSuccess(
+        "Picagem manual adicionada com sucesso."
+      );
+
+      setManualReason("");
+      setShowManualForm(false);
+
+      await loadDay();
+    } catch (error: any) {
+      console.error(
+        "Erro ao criar picagem manual:",
+        error
+      );
+
+      setError(
+        apiError(
+          error,
+          "Não foi possível adicionar a picagem manual."
+        )
+      );
+    } finally {
+      setManualSaving(false);
     }
   }
 
@@ -524,10 +634,120 @@ export default function TimePunches() {
             }
           />
 
+          <div className="flex justify-end">
+            <button
+              type="button"
+              disabled={!employeeId || !selectedDate}
+              onClick={() => {
+                setShowManualForm(
+                  (current) => !current
+                );
+                setError("");
+                setSuccess("");
+              }}
+              className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {showManualForm
+                ? "Cancelar picagem manual"
+                : "+ Adicionar picagem manual"}
+            </button>
+          </div>
+
+          {showManualForm && (
+            <section className="rounded-xl border border-blue-100 bg-blue-50 p-6">
+              <h3 className="text-lg font-semibold text-slate-900">
+                Nova picagem manual
+              </h3>
+
+              <p className="mt-1 text-sm text-slate-600">
+                A picagem será registada para a data selecionada e ficará identificada como ajuste manual.
+              </p>
+
+              <form
+                onSubmit={createManualPunch}
+                className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[180px_180px_1fr_auto] lg:items-end"
+              >
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Tipo
+                  </label>
+
+                  <select
+                    value={manualDirection}
+                    onChange={(event) =>
+                      setManualDirection(
+                        Number(
+                          event.target.value
+                        ) as PunchDirection
+                      )
+                    }
+                    className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-800 outline-none focus:border-blue-500"
+                  >
+                    <option value={1}>
+                      Entrada
+                    </option>
+                    <option value={2}>
+                      Saída
+                    </option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Hora
+                  </label>
+
+                  <input
+                    type="time"
+                    value={manualTime}
+                    onChange={(event) =>
+                      setManualTime(
+                        event.target.value
+                      )
+                    }
+                    className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-800 outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Motivo
+                  </label>
+
+                  <input
+                    type="text"
+                    value={manualReason}
+                    onChange={(event) =>
+                      setManualReason(
+                        event.target.value
+                      )
+                    }
+                    maxLength={500}
+                    placeholder="Ex.: Correção de picagem esquecida"
+                    className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-800 outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={manualSaving}
+                  className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {manualSaving
+                    ? "A guardar..."
+                    : "Adicionar"}
+                </button>
+              </form>
+            </section>
+          )}
+
           {analysisLoading ? (
             <LoadingCard text="A calcular o dia..." />
           ) : dayResult ? (
-            <DaySummary result={dayResult} />
+            <>
+              <DaySummary result={dayResult} />
+              <DayPunchTable punches={dayPunches} />
+            </>
           ) : (
             <EmptyAnalysis
               text="Selecione um funcionário e uma data para consultar o dia."
@@ -568,6 +788,151 @@ export default function TimePunches() {
         </>
       )}
     </div>
+  );
+}
+
+function DayPunchTable({
+  punches,
+}: {
+  punches: TimePunch[];
+}) {
+  const ordered =
+    [...punches].sort(
+      (a, b) =>
+        new Date(
+          a.timestampUtc
+        ).getTime() -
+        new Date(
+          b.timestampUtc
+        ).getTime()
+    );
+
+  return (
+    <section className="overflow-hidden rounded-xl bg-white shadow-sm">
+      <div className="border-b border-slate-100 px-6 py-5">
+        <h3 className="text-lg font-semibold text-slate-900">
+          Picagens do dia
+        </h3>
+
+        <p className="mt-1 text-sm text-slate-500">
+          Registos que estão a ser usados no cálculo diário.
+        </p>
+      </div>
+
+      {ordered.length === 0 ? (
+        <div className="p-8 text-center text-slate-500">
+          Não existem picagens para este dia.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50">
+              <tr className="border-b">
+                <th className="px-6 py-4 font-semibold text-slate-600">
+                  Hora
+                </th>
+                <th className="px-6 py-4 font-semibold text-slate-600">
+                  Tipo
+                </th>
+                <th className="px-6 py-4 font-semibold text-slate-600">
+                  Origem
+                </th>
+                <th className="px-6 py-4 font-semibold text-slate-600">
+                  Motivo
+                </th>
+                <th className="px-6 py-4 font-semibold text-slate-600">
+                  Estado
+                </th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {ordered.map((punch) => (
+                <tr
+                  key={punch.id}
+                  className={
+                    punch.isVoided
+                      ? "bg-slate-50 opacity-60"
+                      : "hover:bg-slate-50"
+                  }
+                >
+                  <td className="px-6 py-4 font-semibold tabular-nums text-slate-900">
+                    {formatTime(
+                      punch.timestampUtc
+                    )}
+                  </td>
+
+                  <td className="px-6 py-4">
+                    <DirectionBadge
+                      direction={
+                        punch.direction
+                      }
+                      label={
+                        punch.directionName
+                      }
+                    />
+                  </td>
+
+                  <td className="px-6 py-4">
+                    <SourceBadge
+                      source={punch.source}
+                      label={punch.sourceName}
+                    />
+                  </td>
+
+                  <td className="max-w-md px-6 py-4 text-slate-600">
+                    {punch.adjustmentReason ??
+                      "-"}
+                  </td>
+
+                  <td className="px-6 py-4">
+                    {punch.isVoided ? (
+                      <span className="inline-flex rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-600">
+                        Anulada
+                      </span>
+                    ) : (
+                      <span className="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                        Válida
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SourceBadge({
+  source,
+  label,
+}: {
+  source: number;
+  label: string;
+}) {
+  if (source === 3) {
+    return (
+      <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
+        {label || "Ajuste manual"}
+      </span>
+    );
+  }
+
+  if (source === 2) {
+    return (
+      <span className="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700">
+        {label || "Dispositivo"}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+      {label || "HRVault"}
+    </span>
   );
 }
 

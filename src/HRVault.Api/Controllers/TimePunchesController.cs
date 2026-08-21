@@ -3,6 +3,7 @@ using HRVault.Application.TimePunches.Commands.CreateTimePunch;
 using HRVault.Application.TimePunches.DTOs;
 using HRVault.Application.TimePunches.Queries.GetEmployeeTimePunches;
 using HRVault.Application.TimePunches.Queries.GetTodayTimePunches;
+using HRVault.Application.TimePunches.Commands.CreateManualTimePunch;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HRVault.Api.Controllers;
@@ -19,6 +20,15 @@ public class TimePunchesController : BaseApiController
         var id = await Mediator.Send(command);
         return Ok(id);
     }
+	
+	[HttpPost("manual")]
+	[HasPermission("Employees.Update")]
+	public async Task<ActionResult<Guid>> CreateManual(
+		CreateManualTimePunchCommand command)
+	{
+		var id = await Mediator.Send(command);
+		return Ok(id);
+	}
 
     [HttpGet("today")]
     [HasPermission("Employees.View")]

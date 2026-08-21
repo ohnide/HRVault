@@ -20,4 +20,6 @@ public class TimePunchDto
     public string? VoidReason { get; set; }
 
     public DateTime CreatedAt { get; set; }
+	
+	public string? AdjustmentReason { get; set; }
 }
